@@ -92,8 +92,8 @@ async function confirmRegistration(req, res, next) {
     const token = req.query.token;
     if (!token) return res.status(400).json({ error: 'token is required' });
 
-    await authService.confirmRegistration(token);
-    res.json({ message: 'Account confirmed' });
+    const data = await authService.confirmRegistration(token);
+    res.json(data);
   } catch (err) {
     next(err);
   }

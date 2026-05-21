@@ -39,9 +39,7 @@ async function signup(email, username, password) {
   // Best-effort confirmation email
   mailer.sendConfirmationEmail(user.email, token).catch(() => {});
 
-  const accessToken = jwt.sign({ userId: user.id, type: 'access' }, jwtSecret, { expiresIn: '15m' });
-  const refreshToken = jwt.sign({ userId: user.id, type: 'refresh' }, refreshSecret, { expiresIn: '30d' });
-  return { accessToken, refreshToken, user };
+  return { message: 'A confirmation mail has been sent to your email.' };
 }
 
 async function login(email, password) {
@@ -185,8 +183,17 @@ async function confirmRegistration(token) {
     err.status = 400;
     throw err;
   }
-  await db.query('UPDATE users SET is_confirmed = TRUE WHERE id = $1', [r.user_id]);
+  const userRow = await db.query(
+    'UPDATE users SET is_confirmed = TRUE WHERE id = $1 RETURNING id, email, username',
+    [r.user_id]
+  );
+  const user = userRow.rows[0];
   await db.query('DELETE FROM confirmations WHERE user_id = $1', [r.user_id]);
+
+  const accessToken = jwt.sign({ userId: user.id, type: 'access' }, jwtSecret, { expiresIn: '15m' });
+  const refreshToken = jwt.sign({ userId: user.id, type: 'refresh' }, refreshSecret, { expiresIn: '30d' });
+  
+  return { message: 'Account confirmed', accessToken, refreshToken, user };
 }
 
 module.exports = {
