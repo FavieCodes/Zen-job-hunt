@@ -46,3 +46,24 @@ CREATE INDEX IF NOT EXISTS idx_jobs_state     ON jobs(state);
 CREATE INDEX IF NOT EXISTS idx_jobs_posted_at ON jobs(posted_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sch_country    ON scholarships(country);
 CREATE INDEX IF NOT EXISTS idx_sch_deadline   ON scholarships(deadline);
+
+-- Add confirmation and password reset tables and is_confirmed flag
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_confirmed BOOLEAN DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS confirmations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_confirmations_user ON confirmations(user_id);
+
+CREATE TABLE IF NOT EXISTS password_resets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id);

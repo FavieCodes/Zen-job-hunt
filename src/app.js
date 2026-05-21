@@ -1,6 +1,10 @@
 const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const morgan = require('morgan');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./docs/swagger');
+const logger = require('./common/logger');
 
 const authRoutes         = require('./auth/auth.routes');
 const jobsRoutes         = require('./jobs/jobs.routes');
@@ -14,11 +18,18 @@ const app = express();
 app.use(helmet());
 app.use(express.json());
 
+// HTTP request logging
+app.use(morgan('combined', { stream: logger.stream }));
+
 // Rate limiting — 100 requests per 15 minutes per IP
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 
-// Health check
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+// Health check (detailed)
+const { health } = require('./common/health.controller');
+app.get('/health', health);
+
+// Swagger UI
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
 app.use('/api/auth',         authRoutes);
