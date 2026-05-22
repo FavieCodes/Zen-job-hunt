@@ -13,8 +13,10 @@ const scraperRoutes      = require('./scraper/scraper.routes');
 const errorHandler       = require('./common/errorHandler');
 
 const app = express();
+const cors = require('cors');
 
 // Security and parsing
+app.use(cors());
 app.use(helmet());
 app.use(express.json());
 
