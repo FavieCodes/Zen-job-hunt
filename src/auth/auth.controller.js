@@ -50,7 +50,7 @@ async function forgotPassword(req, res, next) {
     if (!email) return res.status(400).json({ error: 'email is required' });
 
     await authService.issuePasswordReset(email);
-    // Always return success to avoid leaking user existence
+  
     res.json({ message: 'If an account exists an email has been sent' });
   } catch (err) {
     next(err);
@@ -99,4 +99,28 @@ async function confirmRegistration(req, res, next) {
   }
 }
 
-module.exports = { signup, login, googleLogin, forgotPassword, resetPasswordAuthenticated, resetPasswordWithToken, confirmRegistration };
+async function resendConfirmation(req, res, next) {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'email is required' });
+
+    const data = await authService.resendConfirmation(email);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getMe(req, res, next) {
+  try {
+    const userId = req.user && req.user.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const data = await authService.getMe(userId);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { signup, login, googleLogin, forgotPassword, resetPasswordAuthenticated, resetPasswordWithToken, confirmRegistration, resendConfirmation, getMe };

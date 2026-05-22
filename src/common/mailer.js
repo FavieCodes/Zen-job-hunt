@@ -1,7 +1,8 @@
+require('dotenv').config();
 const nodemailer = require('nodemailer');
 const logger = require('./logger');
 
-// Use SMTP config from env if provided, otherwise create a noop sender that logs
+// Use SMTP
 const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
 
 let transporter;

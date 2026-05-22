@@ -142,6 +142,19 @@ const options = {
           }
         }
       },
+      '/api/auth/resend-confirmation': {
+        post: {
+          tags: ['Authentication'],
+          summary: 'Resend confirmation email',
+          description: 'Resend the email confirmation token to the given email if not already confirmed.',
+          requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', properties: { email: { type: 'string' } }, required: ['email'] } } } },
+          responses: {
+            '200': { description: 'Confirmation email resent', content: { 'application/json': { schema: { type: 'object', properties: { message: { type: 'string' } } } } } },
+            '400': { description: 'Validation error (e.g. already confirmed)', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+            '404': { description: 'User not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+          }
+        }
+      },
       '/api/auth/login': {
         post: {
           tags: ['Authentication'],

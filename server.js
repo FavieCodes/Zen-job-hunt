@@ -1,5 +1,5 @@
-const app = require('./src/app');
 const { port } = require('./src/config/env');
+const app = require('./src/app');
 const startScheduler = require('./src/cron/scheduler');
 const logger = require('./src/common/logger');
 

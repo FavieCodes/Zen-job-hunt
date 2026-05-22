@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
+const axios = require('axios');
 const db = require('../config/db');
 const mailer = require('../common/mailer');
 const { jwtSecret, refreshSecret, googleClientId } = require('../config/env');
@@ -28,7 +29,6 @@ async function signup(email, username, password) {
 
   const user = result.rows[0];
 
-  // Create email confirmation token (24 h expiry)
   const token = crypto.randomBytes(24).toString('hex');
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
   await db.query(
@@ -36,7 +36,7 @@ async function signup(email, username, password) {
     [user.id, token, expiresAt]
   );
 
-  // Best-effort confirmation email
+
   mailer.sendConfirmationEmail(user.email, token).catch(() => {});
 
   return { message: 'A confirmation mail has been sent to your email.' };
@@ -64,17 +64,32 @@ async function login(email, password) {
   return {
     accessToken,
     refreshToken,
-    user: { id: user.id, email: user.email, username: user.username },
+    user: { id: user.id, email: user.email, username: user.username, is_confirmed: user.is_confirmed },
   };
 }
 
-async function loginWithGoogle(idToken) {
-  const client = new OAuth2Client(googleClientId);
-  const ticket = await client.verifyIdToken({ idToken, audience: googleClientId });
-  const payload = ticket.getPayload();
+async function loginWithGoogle(token) {
+  let payload;
+  
+  try {
+    const client = new OAuth2Client(googleClientId);
+    const ticket = await client.verifyIdToken({ idToken: token, audience: googleClientId });
+    payload = ticket.getPayload();
+  } catch (err) {
+    try {
+      const response = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      payload = response.data;
+    } catch (apiErr) {
+      const error = new Error('Invalid Google token');
+      error.status = 401;
+      throw error;
+    }
+  }
 
   if (!payload || !payload.email) {
-    const err = new Error('Invalid Google ID token');
+    const err = new Error('Invalid Google token payload');
     err.status = 401;
     throw err;
   }
@@ -102,9 +117,9 @@ async function loginWithGoogle(idToken) {
 
     const passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
     const res = await db.query(
-      `INSERT INTO users (email, username, password_hash)
-       VALUES ($1, $2, $3)
-       RETURNING id, email, username, created_at`,
+      `INSERT INTO users (email, username, password_hash, is_confirmed)
+       VALUES ($1, $2, $3, TRUE)
+       RETURNING id, email, username, is_confirmed, created_at`,
       [email, candidate, passwordHash]
     );
     user = res.rows[0];
@@ -115,17 +130,17 @@ async function loginWithGoogle(idToken) {
   return {
     accessToken,
     refreshToken,
-    user: { id: user.id, email: user.email, username: user.username },
+    user: { id: user.id, email: user.email, username: user.username, is_confirmed: user.is_confirmed },
   };
 }
 
 async function issuePasswordReset(email) {
   const userRes = await db.query('SELECT id, email FROM users WHERE email = $1', [email]);
   const user = userRes.rows[0];
-  if (!user) return; // don't reveal whether email exists
+  if (!user) return; 
 
   const token = crypto.randomBytes(32).toString('hex');
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); 
   await db.query(
     'INSERT INTO password_resets (user_id, token, expires_at) VALUES ($1, $2, $3)',
     [user.id, token, expiresAt]
@@ -193,7 +208,48 @@ async function confirmRegistration(token) {
   const accessToken = jwt.sign({ userId: user.id, type: 'access' }, jwtSecret, { expiresIn: '15m' });
   const refreshToken = jwt.sign({ userId: user.id, type: 'refresh' }, refreshSecret, { expiresIn: '30d' });
   
-  return { message: 'Account confirmed', accessToken, refreshToken, user };
+  return { message: 'Account confirmed', accessToken, refreshToken, user: { ...user, is_confirmed: true } };
+}
+
+async function resendConfirmation(email) {
+  const result = await db.query('SELECT id, email, is_confirmed FROM users WHERE email = $1', [email]);
+  const user = result.rows[0];
+  if (!user) {
+    const err = new Error('User not found');
+    err.status = 404;
+    throw err;
+  }
+  if (user.is_confirmed) {
+    const err = new Error('Account is already confirmed');
+    err.status = 400;
+    throw err;
+  }
+
+  const token = crypto.randomBytes(24).toString('hex');
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  
+  await db.query('DELETE FROM confirmations WHERE user_id = $1', [user.id]);
+  await db.query(
+    'INSERT INTO confirmations (user_id, token, expires_at) VALUES ($1, $2, $3)',
+    [user.id, token, expiresAt]
+  );
+
+  mailer.sendConfirmationEmail(user.email, token).catch(() => {});
+  return { message: 'Confirmation email resent' };
+}
+
+async function getMe(userId) {
+  const result = await db.query(
+    'SELECT id, email, username, is_confirmed FROM users WHERE id = $1',
+    [userId]
+  );
+  const user = result.rows[0];
+  if (!user) {
+    const err = new Error('User not found');
+    err.status = 401;
+    throw err;
+  }
+  return { user };
 }
 
 module.exports = {
@@ -204,4 +260,6 @@ module.exports = {
   resetPasswordWithToken,
   changePassword,
   confirmRegistration,
+  resendConfirmation,
+  getMe,
 };
