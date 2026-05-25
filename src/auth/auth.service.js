@@ -19,14 +19,12 @@ async function signup(email, username, password) {
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-
   const result = await db.query(
     `INSERT INTO users (email, username, password_hash)
      VALUES ($1, $2, $3)
      RETURNING id, email, username, created_at`,
     [email, username, passwordHash]
   );
-
   const user = result.rows[0];
 
   const token = crypto.randomBytes(24).toString('hex');
@@ -35,11 +33,9 @@ async function signup(email, username, password) {
     'INSERT INTO confirmations (user_id, token, expires_at) VALUES ($1, $2, $3)',
     [user.id, token, expiresAt]
   );
-
-
   mailer.sendConfirmationEmail(user.email, token).catch(() => {});
 
-  return { message: 'A confirmation mail has been sent to your email.' };
+  return { message: 'A confirmation email has been sent to your address.' };
 }
 
 async function login(email, password) {
@@ -61,6 +57,7 @@ async function login(email, password) {
 
   const accessToken = jwt.sign({ userId: user.id, type: 'access' }, jwtSecret, { expiresIn: '15m' });
   const refreshToken = jwt.sign({ userId: user.id, type: 'refresh' }, refreshSecret, { expiresIn: '30d' });
+
   return {
     accessToken,
     refreshToken,
@@ -68,23 +65,43 @@ async function login(email, password) {
   };
 }
 
+async function logout(accessToken, refreshToken) {
+  const blacklistToken = async (token, secret) => {
+    try {
+      const decoded = jwt.verify(token, secret, { ignoreExpiration: false });
+      const expiresAt = new Date(decoded.exp * 1000);
+      await db.query(
+        `INSERT INTO token_blacklist (token, expires_at)
+         VALUES ($1, $2)
+         ON CONFLICT (token) DO NOTHING`,
+        [token, expiresAt]
+      );
+    } catch {
+    }
+  };
+
+  await blacklistToken(accessToken, jwtSecret);
+  if (refreshToken) {
+    await blacklistToken(refreshToken, refreshSecret);
+  }
+}
+
 async function loginWithGoogle(token) {
   let payload;
-  
   try {
     const client = new OAuth2Client(googleClientId);
     const ticket = await client.verifyIdToken({ idToken: token, audience: googleClientId });
     payload = ticket.getPayload();
-  } catch (err) {
+  } catch {
     try {
       const response = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       payload = response.data;
-    } catch (apiErr) {
-      const error = new Error('Invalid Google token');
-      error.status = 401;
-      throw error;
+    } catch {
+      const err = new Error('Invalid Google token');
+      err.status = 401;
+      throw err;
     }
   }
 
@@ -96,7 +113,6 @@ async function loginWithGoogle(token) {
 
   const email = payload.email;
   const name = payload.name || email.split('@')[0];
-
   const existing = await db.query('SELECT * FROM users WHERE email = $1', [email]);
   let user = existing.rows[0];
 
@@ -108,18 +124,16 @@ async function loginWithGoogle(token) {
       'SELECT username FROM users WHERE username LIKE $1',
       [`${username}%`]
     );
-    const taken = new Set(conflicts.rows.map((row) => row.username));
+    const taken = new Set(conflicts.rows.map((r) => r.username));
     let candidate = username;
     let suffix = 1;
-    while (taken.has(candidate)) {
-      candidate = `${username}_${suffix++}`;
-    }
+    while (taken.has(candidate)) candidate = `${username}_${suffix++}`;
 
     const passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
     const res = await db.query(
       `INSERT INTO users (email, username, password_hash, is_confirmed)
        VALUES ($1, $2, $3, TRUE)
-       RETURNING id, email, username, is_confirmed, created_at`,
+       RETURNING id, email, username, is_confirmed`,
       [email, candidate, passwordHash]
     );
     user = res.rows[0];
@@ -137,10 +151,10 @@ async function loginWithGoogle(token) {
 async function issuePasswordReset(email) {
   const userRes = await db.query('SELECT id, email FROM users WHERE email = $1', [email]);
   const user = userRes.rows[0];
-  if (!user) return; 
+  if (!user) return;
 
   const token = crypto.randomBytes(32).toString('hex');
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); 
+  const expiresAt = new Date(Date.now() + 60 * 60 * 5000);
   await db.query(
     'INSERT INTO password_resets (user_id, token, expires_at) VALUES ($1, $2, $3)',
     [user.id, token, expiresAt]
@@ -207,7 +221,7 @@ async function confirmRegistration(token) {
 
   const accessToken = jwt.sign({ userId: user.id, type: 'access' }, jwtSecret, { expiresIn: '15m' });
   const refreshToken = jwt.sign({ userId: user.id, type: 'refresh' }, refreshSecret, { expiresIn: '30d' });
-  
+
   return { message: 'Account confirmed', accessToken, refreshToken, user: { ...user, is_confirmed: true } };
 }
 
@@ -227,13 +241,11 @@ async function resendConfirmation(email) {
 
   const token = crypto.randomBytes(24).toString('hex');
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  
   await db.query('DELETE FROM confirmations WHERE user_id = $1', [user.id]);
   await db.query(
     'INSERT INTO confirmations (user_id, token, expires_at) VALUES ($1, $2, $3)',
     [user.id, token, expiresAt]
   );
-
   mailer.sendConfirmationEmail(user.email, token).catch(() => {});
   return { message: 'Confirmation email resent' };
 }
@@ -255,6 +267,7 @@ async function getMe(userId) {
 module.exports = {
   signup,
   login,
+  logout,
   loginWithGoogle,
   issuePasswordReset,
   resetPasswordWithToken,

@@ -1,31 +1,27 @@
 const cron = require('node-cron');
+const db = require('../config/db');
 const { runScraper, deactivateOldListings } = require('../scraper/scraper.service');
-const logger = require('../common/logger');
 
 function startScheduler() {
-  // Scrape every 6 hours
   cron.schedule('0 */6 * * *', async () => {
-    logger.info('[CRON] Running scraper...');
-    try {
-      const results = await runScraper();
-      logger.info('[CRON] Scraper done', { results });
-    } catch (err) {
-      logger.error('[CRON] Scraper failed', { error: err.message, stack: err.stack });
-    }
+    console.log('[CRON] Running scraper...');
+    const results = await runScraper();
+    console.log('[CRON] Scraper done:', results);
   });
 
-  // Clean up old listings every day at midnight
+  // Deactivate old listings every day at midnight
   cron.schedule('0 0 * * *', async () => {
-    logger.info('[CRON] Deactivating old listings...');
-    try {
-      await deactivateOldListings();
-      logger.info('[CRON] Old listings deactivated');
-    } catch (err) {
-      logger.error('[CRON] Deactivation failed', { error: err.message });
-    }
+    console.log('[CRON] Deactivating old listings...');
+    await deactivateOldListings();
   });
 
-  logger.info('[CRON] Scheduler started');
+  // Clean up expired blacklisted 
+  cron.schedule('0 1 * * *', async () => {
+    console.log('[CRON] Cleaning token blacklist...');
+    await db.query('DELETE FROM token_blacklist WHERE expires_at <= NOW()');
+  });
+
+  console.log('[CRON] Scheduler started');
 }
 
 module.exports = startScheduler;

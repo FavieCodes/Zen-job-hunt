@@ -23,7 +23,7 @@ app.use(express.json());
 // HTTP request logging
 app.use(morgan('combined', { stream: logger.stream }));
 
-// Rate limiting — 100 requests per 15 minutes per IP
+// Rate limiting —
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 
 // Health check (detailed)
@@ -39,7 +39,7 @@ app.use('/api/jobs',         jobsRoutes);
 app.use('/api/scholarships', scholarshipsRoutes);
 app.use('/api/scraper',      scraperRoutes);
 
-// Global error handler — must be last
+
 app.use(errorHandler);
 
 module.exports = app;
