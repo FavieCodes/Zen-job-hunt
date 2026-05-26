@@ -32,7 +32,8 @@
     "redis": "^5.12.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^4.6.3",
-    "winston": "^3.19.0"
+    "winston": "^3.19.0",
+    "xml2js": "^0.6.2"
   },
   "devDependencies": {
     "jest": "^30.4.2",

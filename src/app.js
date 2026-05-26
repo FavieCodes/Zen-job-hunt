@@ -10,6 +10,7 @@ const authRoutes         = require('./auth/auth.routes');
 const jobsRoutes         = require('./jobs/jobs.routes');
 const scholarshipsRoutes = require('./scholarships/scholarships.routes');
 const scraperRoutes      = require('./scraper/scraper.routes');
+const adminRoutes        = require('./admin/admin.routes');
 const errorHandler       = require('./common/errorHandler');
 
 const app = express();
@@ -38,6 +39,7 @@ app.use('/api/auth',         authRoutes);
 app.use('/api/jobs',         jobsRoutes);
 app.use('/api/scholarships', scholarshipsRoutes);
 app.use('/api/scraper',      scraperRoutes);
+app.use('/api/admin',        adminRoutes);
 
 
 app.use(errorHandler);

@@ -1,4 +1,5 @@
 const swaggerJSDoc = require('swagger-jsdoc');
+const path = require('path');
 
 const options = {
   definition: {
@@ -8,261 +9,166 @@ const options = {
       version: '1.0.0',
       description: 'API documentation for JobHunt backend',
     },
-    servers: [{ url: 'http://localhost:3000' }],
+    servers: [
+      { url: 'http://localhost:8000', description: 'Local development' },
+    ],
     components: {
       securitySchemes: {
         bearerAuth: {
           type: 'http',
           scheme: 'bearer',
-          bearerFormat: 'JWT'
-        }
+          bearerFormat: 'JWT',
+        },
       },
       schemas: {
         ErrorResponse: {
           type: 'object',
-          properties: {
-            error: { type: 'string', description: 'Error message' }
-          }
+          properties: { error: { type: 'string' } },
         },
-        ComponentStatus: {
+        MessageResponse: {
+          type: 'object',
+          properties: { message: { type: 'string' } },
+        },
+        User: {
           type: 'object',
           properties: {
-            connected: { type: 'boolean' },
-            url: { type: 'string' },
-            error: { type: 'string' }
-          }
-        },
-        HealthResponse: {
-          type: 'object',
-          properties: {
-            status: { type: 'string', description: 'overall status: ok|degraded' },
-            checks: { type: 'object', properties: { database: { $ref: '#/components/schemas/ComponentStatus' }, redis: { $ref: '#/components/schemas/ComponentStatus' } } },
-            uptime: { type: 'number' },
-            timestamp: { type: 'string' },
-            responseTimeMs: { type: 'number' }
-          }
-        },
-        SignupRequest: {
-          type: 'object',
-          properties: { email: { type: 'string' }, username: { type: 'string' }, password: { type: 'string' } },
-          required: ['email','username','password']
+            id:           { type: 'string', format: 'uuid' },
+            email:        { type: 'string', format: 'email' },
+            username:     { type: 'string' },
+            is_confirmed: { type: 'boolean' },
+            role:         { type: 'string', enum: ['user', 'admin'] },
+          },
         },
         AuthResponse: {
           type: 'object',
           properties: {
-            token: { type: 'string' },
-            user: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-                email: { type: 'string' },
-                username: { type: 'string' }
-              }
-            }
-          }
+            accessToken:  { type: 'string' },
+            refreshToken: { type: 'string' },
+            user:         { $ref: '#/components/schemas/User' },
+          },
         },
-        ForgotPasswordRequest: {
-          type: 'object',
-          properties: { email: { type: 'string' } },
-          required: ['email']
-        },
-        ForgotPasswordResponse: { type: 'object', properties: { message: { type: 'string' } } },
-        ResetPasswordOldRequest: {
-          type: 'object',
-          properties: { oldPassword: { type: 'string' }, newPassword: { type: 'string' }, confirmNewPassword: { type: 'string' } },
-          required: ['oldPassword','newPassword','confirmNewPassword']
-        },
-        ResetPasswordTokenRequest: {
-          type: 'object',
-          properties: { token: { type: 'string' }, newPassword: { type: 'string' }, confirmNewPassword: { type: 'string' } },
-          required: ['token','newPassword','confirmNewPassword']
-        },
-        ConfirmRegistrationResponse: { type: 'object', properties: { message: { type: 'string' } } },
-        JobsList: {
+        Job: {
           type: 'object',
           properties: {
-            jobs: { type: 'array', items: { type: 'object' } },
-            page: { type: 'number' },
-            count: { type: 'number' }
-          }
+            id:          { type: 'string', format: 'uuid' },
+            title:       { type: 'string' },
+            company:     { type: 'string' },
+            description: { type: 'string' },
+            country:     { type: 'string' },
+            state:       { type: 'string' },
+            city:        { type: 'string' },
+            job_type:    { type: 'string', enum: ['full-time','part-time','contract','remote','internship'] },
+            salary:      { type: 'string' },
+            apply_url:   { type: 'string', format: 'uri' },
+            source_url:  { type: 'string', format: 'uri' },
+            source_name: { type: 'string' },
+            posted_at:   { type: 'string', format: 'date-time' },
+            scraped_at:  { type: 'string', format: 'date-time' },
+            is_active:   { type: 'boolean' },
+          },
         },
-        Job: { type: 'object' },
-        ScholarshipsList: {
+        JobInput: {
+          type: 'object',
+          required: ['title'],
+          properties: {
+            title:       { type: 'string' },
+            company:     { type: 'string' },
+            description: { type: 'string' },
+            country:     { type: 'string' },
+            state:       { type: 'string' },
+            city:        { type: 'string' },
+            job_type:    { type: 'string', enum: ['full-time','part-time','contract','remote','internship'] },
+            salary:      { type: 'string' },
+            apply_url:   { type: 'string', format: 'uri' },
+            source_url:  { type: 'string', format: 'uri' },
+            posted_at:   { type: 'string', format: 'date-time' },
+            is_active:   { type: 'boolean' },
+          },
+        },
+        Scholarship: {
           type: 'object',
           properties: {
-            scholarships: { type: 'array', items: { type: 'object' } },
-            page: { type: 'number' },
-            count: { type: 'number' }
-          }
+            id:          { type: 'string', format: 'uuid' },
+            title:       { type: 'string' },
+            provider:    { type: 'string' },
+            description: { type: 'string' },
+            country:     { type: 'string' },
+            field:       { type: 'string' },
+            deadline:    { type: 'string', format: 'date' },
+            amount:      { type: 'string' },
+            apply_url:   { type: 'string', format: 'uri' },
+            source_url:  { type: 'string', format: 'uri' },
+            posted_at:   { type: 'string', format: 'date-time' },
+            is_active:   { type: 'boolean' },
+          },
         },
-        TriggerResponse: { type: 'object', properties: { message: { type: 'string' } } }
-      }
-    }
-    ,
+        ScholarshipInput: {
+          type: 'object',
+          required: ['title'],
+          properties: {
+            title:       { type: 'string' },
+            provider:    { type: 'string' },
+            description: { type: 'string' },
+            country:     { type: 'string' },
+            field:       { type: 'string' },
+            deadline:    { type: 'string', format: 'date' },
+            amount:      { type: 'string' },
+            apply_url:   { type: 'string', format: 'uri' },
+            source_url:  { type: 'string', format: 'uri' },
+            posted_at:   { type: 'string', format: 'date-time' },
+            is_active:   { type: 'boolean' },
+          },
+        },
+        BulkCreateResponse: {
+          type: 'object',
+          properties: {
+            created: { type: 'integer' },
+            skipped: { type: 'integer' },
+            errors:  { type: 'array', items: { type: 'object' } },
+          },
+        },
+        PaginatedJobs: {
+          type: 'object',
+          properties: {
+            total: { type: 'integer' },
+            page:  { type: 'integer' },
+            limit: { type: 'integer' },
+            pages: { type: 'integer' },
+            jobs:  { type: 'array', items: { $ref: '#/components/schemas/Job' } },
+          },
+        },
+        PaginatedScholarships: {
+          type: 'object',
+          properties: {
+            total:        { type: 'integer' },
+            page:         { type: 'integer' },
+            limit:        { type: 'integer' },
+            pages:        { type: 'integer' },
+            scholarships: { type: 'array', items: { $ref: '#/components/schemas/Scholarship' } },
+          },
+        },
+      },
+    },
     tags: [
-      { name: 'Authentication', description: 'Signup, login, social login and password management' },
-      { name: 'Jobs', description: 'Job search and retrieval' },
-      { name: 'Scholarships', description: 'Scholarship search' },
-      { name: 'Scraper', description: 'Scraper control endpoints' },
-      { name: 'Health', description: 'Health and status checks' }
+      { name: 'Auth',         description: 'Signup, login, social login and password management' },
+      { name: 'Jobs',         description: 'Public job search and retrieval' },
+      { name: 'Scholarships', description: 'Public scholarship search' },
+      { name: 'Admin/Jobs',         description: 'Admin — job management (requires admin token)' },
+      { name: 'Admin/Scholarships', description: 'Admin — scholarship management (requires admin token)' },
+      { name: 'Scraper',      description: 'Scraper control (requires auth)' },
+      { name: 'Health',       description: 'Health and status checks' },
     ],
-    paths: {
-      '/health': {
-        get: {
-          tags: ['Health'],
-          summary: 'Health check',
-          description: 'Returns health of the app and integrations',
-          responses: {
-            '200': { description: 'Healthy', content: { 'application/json': { schema: { $ref: '#/components/schemas/HealthResponse' } } } },
-            '500': { description: 'Server error', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-          }
-        }
-      },
-      '/api/auth/signup': {
-        post: {
-          tags: ['Authentication'],
-          summary: 'Create user',
-          requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/SignupRequest' } } } },
-          responses: {
-            '201': { description: 'User created', content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthResponse' } } } },
-            '400': { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
-            '500': { description: 'Server error', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-          }
-        }
-      },
-      '/api/auth/confirm': {
-        get: {
-          tags: ['Authentication'],
-          summary: 'Confirm registration',
-          description: 'Confirm a new registration using a token (e.g. link sent by email). Provide token as a query parameter `?token=...` or in Authorization header.',
-          parameters: [{ name: 'token', in: 'query', required: true, schema: { type: 'string' }, description: 'Confirmation token sent via email' }],
-          responses: {
-            '200': { description: 'Confirmed', content: { 'application/json': { schema: { $ref: '#/components/schemas/ConfirmRegistrationResponse' } } } },
-            '400': { description: 'Invalid token', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-          }
-        }
-      },
-      '/api/auth/resend-confirmation': {
-        post: {
-          tags: ['Authentication'],
-          summary: 'Resend confirmation email',
-          description: 'Resend the email confirmation token to the given email if not already confirmed.',
-          requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', properties: { email: { type: 'string' } }, required: ['email'] } } } },
-          responses: {
-            '200': { description: 'Confirmation email resent', content: { 'application/json': { schema: { type: 'object', properties: { message: { type: 'string' } } } } } },
-            '400': { description: 'Validation error (e.g. already confirmed)', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
-            '404': { description: 'User not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-          }
-        }
-      },
-      '/api/auth/login': {
-        post: {
-          tags: ['Authentication'],
-          summary: 'Login',
-          requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', properties: { email: { type: 'string' }, password: { type: 'string' } }, required: ['email','password'] } } } },
-          responses: {
-            '200': { description: 'Authenticated', content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthResponse' } } } },
-            '400': { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
-            '401': { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-          }
-        }
-      },
-      '/api/auth/google': {
-        post: {
-          tags: ['Authentication'],
-          summary: 'Google social login',
-          requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', properties: { idToken: { type: 'string', description: 'Google ID token from client' } }, required: ['idToken'] } } } },
-          responses: {
-            '200': { description: 'Authenticated with Google', content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthResponse' } } } },
-            '400': { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
-            '401': { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-          }
-        }
-      },
-      '/api/auth/forgot-password': {
-        post: {
-          tags: ['Authentication'],
-          summary: 'Request password reset',
-          description: 'Submit an email address. If an account exists an email with a reset link/token will be sent. Response does not reveal whether the account exists.',
-          requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/ForgotPasswordRequest' } } } },
-          responses: {
-            '200': { description: 'Reset email queued', content: { 'application/json': { schema: { $ref: '#/components/schemas/ForgotPasswordResponse' } } } },
-            '400': { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-          }
-        }
-      },
-      '/api/auth/reset-password': {
-        post: {
-          tags: ['Authentication'],
-          summary: 'Change password (authenticated)',
-          description: 'Change password by providing current (old) password and a new password. Old and new password must not be the same. This endpoint requires a valid Bearer token.',
-          security: [{ bearerAuth: [] }],
-          requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/ResetPasswordOldRequest' } } } },
-          responses: {
-            '200': { description: 'Password changed', content: { 'application/json': { schema: { type: 'object', properties: { message: { type: 'string' } } } } } },
-            '400': { description: 'Validation error (e.g. new passwords do not match or are same as old)', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
-            '401': { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-          }
-        }
-      },
-      '/api/auth/reset-password/token': {
-        post: {
-          tags: ['Authentication'],
-          summary: 'Reset password with token',
-          description: 'Reset password using a token from email (for users who forgot password). Token + new password required. New password and confirm must match.',
-          requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/ResetPasswordTokenRequest' } } } },
-          responses: {
-            '200': { description: 'Password reset', content: { 'application/json': { schema: { type: 'object', properties: { message: { type: 'string' } } } } } },
-            '400': { description: 'Invalid token or validation error', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-          }
-        }
-      },
-      '/api/jobs': {
-        get: {
-          tags: ['Jobs'],
-          summary: 'Search jobs',
-          parameters: [{ name: 'q', in: 'query', schema: { type: 'string' } }],
-          responses: {
-            '200': { description: 'Jobs list', content: { 'application/json': { schema: { $ref: '#/components/schemas/JobsList' } } } },
-            '500': { description: 'Server error', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-          }
-        }
-      },
-      '/api/jobs/{id}': {
-        get: {
-          tags: ['Jobs'],
-          summary: 'Get job',
-          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-          responses: {
-            '200': { description: 'Job', content: { 'application/json': { schema: { $ref: '#/components/schemas/Job' } } } },
-            '404': { description: 'Not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-          }
-        }
-      },
-      '/api/scholarships': {
-        get: {
-          tags: ['Scholarships'],
-          summary: 'Search scholarships',
-          parameters: [{ name: 'q', in: 'query', schema: { type: 'string' } }],
-          responses: {
-            '200': { description: 'Scholarships list', content: { 'application/json': { schema: { $ref: '#/components/schemas/ScholarshipsList' } } } },
-            '500': { description: 'Server error', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-          }
-        }
-      },
-      '/api/scraper/trigger': {
-        post: {
-          tags: ['Scraper'],
-          summary: 'Trigger scraper (protected)',
-          responses: {
-            '200': { description: 'Triggered', content: { 'application/json': { schema: { $ref: '#/components/schemas/TriggerResponse' } } } },
-            '401': { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-          }
-        }
-      }
-    }
   },
-  apis: []
+  // ← THIS is what makes it auto-update: point at all route files.
+  // swagger-jsdoc scans these for /** @swagger */ JSDoc comments.
+  apis: [
+    path.join(__dirname, '../auth/auth.routes.js'),
+    path.join(__dirname, '../jobs/jobs.routes.js'),
+    path.join(__dirname, '../scholarships/scholarships.routes.js'),
+    path.join(__dirname, '../admin/admin.routes.js'),
+    path.join(__dirname, '../scraper/scraper.routes.js'),
+    path.join(__dirname, '../common/health.controller.js'),
+  ],
 };
 
 const swaggerSpec = swaggerJSDoc(options);

@@ -11,7 +11,6 @@ async function searchJobs({ country, state, city, q, job_type, page = 1 }) {
 
   const conditions = [
     'is_active = TRUE',
-    // Include jobs with 
     "(posted_at IS NULL OR posted_at >= NOW() - INTERVAL '30 days')",
   ];
   const params = [];
@@ -22,19 +21,18 @@ async function searchJobs({ country, state, city, q, job_type, page = 1 }) {
   if (city)     { conditions.push(`LOWER(city)     = LOWER($${i++})`); params.push(city);     }
   if (job_type) { conditions.push(`job_type        = $${i++}`);        params.push(job_type); }
   if (q) {
-  
     conditions.push(`(title ILIKE $${i} OR description ILIKE $${i})`);
     params.push(`%${q}%`);
     i++;
   }
 
-  // LIMIT and OFFSET —
   params.push(limit, offset);
   const limitIdx  = i;
   const offsetIdx = i + 1;
+
   const sql = `
     SELECT id, title, company, country, state, city,
-           job_type, salary, source_url, source_name, posted_at, scraped_at
+           job_type, salary, apply_url, source_url, source_name, posted_at, scraped_at
     FROM   jobs
     WHERE  ${conditions.join(' AND ')}
     ORDER  BY COALESCE(posted_at, scraped_at) DESC

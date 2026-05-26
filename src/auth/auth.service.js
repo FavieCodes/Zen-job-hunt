@@ -61,7 +61,7 @@ async function login(email, password) {
   return {
     accessToken,
     refreshToken,
-    user: { id: user.id, email: user.email, username: user.username, is_confirmed: user.is_confirmed },
+    user: { id: user.id, email: user.email, username: user.username, role: user.role, is_confirmed: user.is_confirmed },
   };
 }
 
