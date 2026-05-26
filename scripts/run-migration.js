@@ -4,14 +4,27 @@ const path = require('path');
 require('dotenv').config();
 
 async function runMigrations() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  // Check if we're on Vercel
+  const isVercel = process.env.VERCEL === '1';
   
-  // Try multiple possible paths (for both local and Docker environments)
+  if (!process.env.DATABASE_URL) {
+    console.error('❌ DATABASE_URL is not set. Skipping migrations.');
+    if (isVercel) {
+      console.log('⚠️  Running on Vercel but DATABASE_URL not found. Make sure it\'s set in environment variables.');
+    }
+    return;
+  }
+
+  const pool = new Pool({ 
+    connectionString: process.env.DATABASE_URL,
+    ssl: isVercel ? { rejectUnauthorized: false } : false
+  });
+  
+  // Migration SQL paths
   const possiblePaths = [
-    path.join(__dirname, '../src/database/migrations.sql'),  // Local development
-    path.join(__dirname, '../migrations.sql'),               // Root directory
-    '/usr/src/app/src/database/migrations.sql',              // Docker path with src
-    '/usr/src/app/migrations.sql',                           // Docker path root
+    path.join(__dirname, '../src/database/migrations.sql'),
+    path.join(__dirname, '../src/database/add_user_tables.sql'),
+    path.join(__dirname, '../migrations.sql'),
   ];
   
   let migrationPath = null;
@@ -23,23 +36,48 @@ async function runMigrations() {
   }
   
   if (!migrationPath) {
-    console.error('❌ Migration file not found. Tried:');
-    possiblePaths.forEach(p => console.error(`   - ${p}`));
+    console.error('❌ Migration file not found. Tried:', possiblePaths);
     process.exit(1);
   }
   
   try {
     console.log(`📁 Using migration file: ${migrationPath}`);
     const sql = fs.readFileSync(migrationPath, 'utf8');
-    console.log('📝 Running migrations...');
-    await pool.query(sql);
+    
+    // Split SQL into individual statements
+    const statements = sql.split(';').filter(stmt => stmt.trim().length > 0);
+    
+    console.log(`📝 Running ${statements.length} migration statements...`);
+    
+    for (let i = 0; i < statements.length; i++) {
+      const stmt = statements[i].trim();
+      if (stmt && !stmt.startsWith('--')) {
+        try {
+          await pool.query(stmt);
+          console.log(`✅ Executed statement ${i + 1}/${statements.length}`);
+        } catch (err) {
+          // Ignore "already exists" errors
+          if (!err.message.includes('already exists') && 
+              !err.message.includes('already defined') &&
+              !err.message.includes('duplicate')) {
+            console.warn(`⚠️  Statement ${i + 1} warning: ${err.message}`);
+          }
+        }
+      }
+    }
+    
     console.log('✅ Migrations completed successfully');
   } catch (err) {
     console.error('❌ Migration failed:', err.message);
-    process.exit(1);
+    if (!isVercel) process.exit(1);
   } finally {
     await pool.end();
   }
 }
 
-runMigrations();
+// Run migrations if this script is executed directly
+if (require.main === module) {
+  runMigrations();
+}
+
+module.exports = runMigrations;

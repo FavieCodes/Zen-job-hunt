@@ -10,6 +10,7 @@ const options = {
       description: 'API documentation for JobHunt backend',
     },
     servers: [
+      { url: 'https://zen-job-hunt.vercel.app', description: 'Production' },
       { url: 'http://localhost:8000', description: 'Local development' },
     ],
     components: {
@@ -37,6 +38,8 @@ const options = {
             username:     { type: 'string' },
             is_confirmed: { type: 'boolean' },
             role:         { type: 'string', enum: ['user', 'admin'] },
+            avatar:       { type: 'string' },
+            created_at:   { type: 'string', format: 'date-time' },
           },
         },
         AuthResponse: {
@@ -147,10 +150,34 @@ const options = {
             scholarships: { type: 'array', items: { $ref: '#/components/schemas/Scholarship' } },
           },
         },
+        Application: {
+          type: 'object',
+          properties: {
+            id:         { type: 'string', format: 'uuid' },
+            job_id:     { type: 'string', format: 'uuid' },
+            status:     { type: 'string', enum: ['pending', 'reviewed', 'accepted', 'rejected'] },
+            created_at: { type: 'string', format: 'date-time' },
+            title:      { type: 'string' },
+            company:    { type: 'string' },
+            country:    { type: 'string' },
+            job_type:   { type: 'string' },
+          },
+        },
+        ApplicationStats: {
+          type: 'object',
+          properties: {
+            total:    { type: 'integer' },
+            pending:  { type: 'integer' },
+            reviewed: { type: 'integer' },
+            accepted: { type: 'integer' },
+            rejected: { type: 'integer' },
+          },
+        },
       },
     },
     tags: [
       { name: 'Auth',         description: 'Signup, login, social login and password management' },
+      { name: 'User',         description: 'User profile, applications, and saved jobs management' },
       { name: 'Jobs',         description: 'Public job search and retrieval' },
       { name: 'Scholarships', description: 'Public scholarship search' },
       { name: 'Admin/Jobs',         description: 'Admin — job management (requires admin token)' },
@@ -159,10 +186,9 @@ const options = {
       { name: 'Health',       description: 'Health and status checks' },
     ],
   },
-  // ← THIS is what makes it auto-update: point at all route files.
-  // swagger-jsdoc scans these for /** @swagger */ JSDoc comments.
   apis: [
     path.join(__dirname, '../auth/auth.routes.js'),
+    path.join(__dirname, '../user/user.routes.js'),
     path.join(__dirname, '../jobs/jobs.routes.js'),
     path.join(__dirname, '../scholarships/scholarships.routes.js'),
     path.join(__dirname, '../admin/admin.routes.js'),

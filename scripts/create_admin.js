@@ -11,7 +11,7 @@
  * Usage (non-interactive / CI):
  *   ADMIN_EMAIL=admin@example.com \
  *   ADMIN_USERNAME=admin \
- *   ADMIN_PASSWORD=SuperSecret123! \
+ *   ADMIN_PASSWORD= \
  *   node scripts/create_admin.js
  *
  * Usage (bulk — JSON file):
@@ -19,8 +19,8 @@
  *
  *   admins.json format:
  *   [
- *     { "email": "alice@example.com", "username": "alice", "password": "Secret1!" },
- *     { "email": "bob@example.com",   "username": "bob",   "password": "Secret2!" }
+ *     { "email": "", "username": "alice", "password": "" },
+ *     { "email": "",   "username": "bob",   "password": "" }
  *   ]
  */
 
