@@ -1,9 +1,21 @@
 require('dotenv').config();
 
-const required = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
-required.forEach((key) => {
-  if (!process.env[key]) throw new Error(`Missing required env var: ${key}`);
-});
+const isVercel = process.env.VERCEL === '1';
+const isProduction = process.env.NODE_ENV === 'production';
+
+if (!isVercel) {
+  const required = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
+  required.forEach((key) => {
+    if (!process.env[key]) throw new Error(`Missing required env var: ${key}`);
+  });
+} else {
+  const required = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
+  required.forEach((key) => {
+    if (!process.env[key]) {
+      console.warn(`[WARN] Missing required env var: ${key} (will fail on request)`);
+    }
+  });
+}
 
 const aiKeys = ['GROQ_API_KEY', 'GEMINI_API_KEY', 'ANTHROPIC_API_KEY'];
 const hasAI = aiKeys.some((k) => !!process.env[k]);

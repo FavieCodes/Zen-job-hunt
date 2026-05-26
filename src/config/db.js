@@ -1,7 +1,6 @@
 const { Pool } = require('pg');
 const { databaseUrl } = require('./env');
 
-
 let logger;
 try {
   logger = require('../common/logger');
@@ -14,38 +13,47 @@ try {
 }
 
 if (!databaseUrl) {
-  // Crash early with a clear message rather than a cryptic ECONNREFUSED later
-  throw new Error('[db] DATABASE_URL is not set. Check your .env / Docker environment.');
+  const isVercel = process.env.VERCEL === '1';
+  if (isVercel) {
+    logger.error('[db] DATABASE_URL is not set in Vercel environment variables!');
+    logger.error('[db] Please add DATABASE_URL in your Vercel project settings → Environment Variables');
+    throw new Error('DATABASE_URL not configured on Vercel');
+  } else {
+    throw new Error('[db] DATABASE_URL is not set. Check your .env / Docker environment.');
+  }
 }
+
+const isServerless = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_RUNTIME_API;
 
 const pool = new Pool({
   connectionString: databaseUrl,
-  // Sensible defaults — tune if you have many concurrent scrapers
-  max: 10,
-  idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 5_000, // surface "can't connect" errors faster
+  // For serverless, use smaller pool and shorter timeouts
+  max: isServerless ? 1 : 10,  
+  idleTimeoutMillis: isServerless ? 10_000 : 30_000,
+  connectionTimeoutMillis: isServerless ? 3_000 : 5_000,
+  // For serverless, add pgBouncer mode if supported
+  ...(isServerless && { statement_timeout: 10000 }), 
 });
 
 pool.on('error', (err) => {
   logger.error('[db] Unexpected pool error: ' + err.message);
 });
 
-// ── Startup connectivity check ────────────────────────────────────────────────
-// Runs once when the module first loads. Prints a clear error if the DB
-// is unreachable (e.g. wrong Docker service name in DATABASE_URL).
-pool.connect()
-  .then((client) => {
-    logger.info('[db] PostgreSQL connected successfully');
-    client.release();
-  })
-  .catch((err) => {
-    // Don't crash the process — let individual queries surface errors naturally.
-    // But DO print the full message so you can debug Docker networking issues.
-    logger.error(
-      '[db] Could not establish initial DB connection: ' + err.message +
-      '\n  → Check that DATABASE_URL is correct and the DB container is healthy.' +
-      '\n  → In Docker Compose the host should be the service name, e.g. "postgres", not "localhost".'
-    );
-  });
+if (!isServerless) {
+  pool.connect()
+    .then((client) => {
+      logger.info('[db] PostgreSQL connected successfully');
+      client.release();
+    })
+    .catch((err) => {
+      logger.error(
+        '[db] Could not establish initial DB connection: ' + err.message +
+        '\n  → Check that DATABASE_URL is correct and the DB container is healthy.' +
+        '\n  → In Docker Compose the host should be the service name, e.g. "postgres", not "localhost".'
+      );
+    });
+} else {
+  logger.info('[db] Running in serverless mode - connections will be established per request');
+}
 
 module.exports = pool;
