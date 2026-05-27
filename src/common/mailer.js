@@ -8,7 +8,7 @@ const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587');
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const SMTP_FROM = process.env.SMTP_FROM || 'noreply@jobhunt.com';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://job-hunt-frontend-pjub.vercel.app';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://job-hunt-frontend-gold.vercel.app';
 
 let transporter;
 let emailEnabled = false;
