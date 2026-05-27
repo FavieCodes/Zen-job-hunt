@@ -61,7 +61,14 @@ async function login(email, password) {
   return {
     accessToken,
     refreshToken,
-    user: { id: user.id, email: user.email, username: user.username, role: user.role, is_confirmed: user.is_confirmed },
+    user: {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      role: user.role,
+      is_confirmed: user.is_confirmed,
+      is_google_user: user.is_google_user || false,
+    },
   };
 }
 
@@ -130,13 +137,29 @@ async function loginWithGoogle(token) {
     while (taken.has(candidate)) candidate = `${username}_${suffix++}`;
 
     const passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
+
+    // Ensure the is_google_user column exists (safe migration on first Google login)
+    await db.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_google_user BOOLEAN DEFAULT FALSE
+    `).catch(() => {});
+
     const res = await db.query(
-      `INSERT INTO users (email, username, password_hash, is_confirmed)
-       VALUES ($1, $2, $3, TRUE)
-       RETURNING id, email, username, is_confirmed`,
+      `INSERT INTO users (email, username, password_hash, is_confirmed, is_google_user)
+       VALUES ($1, $2, $3, TRUE, TRUE)
+       RETURNING id, email, username, is_confirmed, role, is_google_user`,
       [email, candidate, passwordHash]
     );
     user = res.rows[0];
+  } else if (!user.is_google_user) {
+    // Existing user logging in via Google for the first time — mark them
+    await db.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_google_user BOOLEAN DEFAULT FALSE
+    `).catch(() => {});
+    await db.query(
+      'UPDATE users SET is_google_user = TRUE WHERE id = $1',
+      [user.id]
+    ).catch(() => {});
+    user.is_google_user = true;
   }
 
   const accessToken = jwt.sign({ userId: user.id, type: 'access' }, jwtSecret, { expiresIn: '15m' });
@@ -144,7 +167,14 @@ async function loginWithGoogle(token) {
   return {
     accessToken,
     refreshToken,
-    user: { id: user.id, email: user.email, username: user.username, is_confirmed: user.is_confirmed },
+    user: {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      is_confirmed: user.is_confirmed,
+      role: user.role || 'user',
+      is_google_user: user.is_google_user || true,
+    },
   };
 }
 
@@ -179,11 +209,16 @@ async function resetPasswordWithToken(token, newPassword) {
 }
 
 async function changePassword(userId, oldPassword, newPassword) {
-  const row = await db.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
+  const row = await db.query('SELECT password_hash, is_google_user FROM users WHERE id = $1', [userId]);
   const user = row.rows[0];
   if (!user) {
     const err = new Error('User not found');
     err.status = 404;
+    throw err;
+  }
+  if (user.is_google_user) {
+    const err = new Error('Google accounts cannot change password through this method');
+    err.status = 400;
     throw err;
   }
   const match = await bcrypt.compare(oldPassword, user.password_hash);
@@ -213,7 +248,7 @@ async function confirmRegistration(token) {
     throw err;
   }
   const userRow = await db.query(
-    'UPDATE users SET is_confirmed = TRUE WHERE id = $1 RETURNING id, email, username',
+    'UPDATE users SET is_confirmed = TRUE WHERE id = $1 RETURNING id, email, username, role',
     [r.user_id]
   );
   const user = userRow.rows[0];
@@ -252,7 +287,7 @@ async function resendConfirmation(email) {
 
 async function getMe(userId) {
   const result = await db.query(
-    'SELECT id, email, username, is_confirmed FROM users WHERE id = $1',
+    'SELECT id, email, username, is_confirmed, role, is_google_user FROM users WHERE id = $1',
     [userId]
   );
   const user = result.rows[0];

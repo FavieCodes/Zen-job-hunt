@@ -2,9 +2,9 @@ const jobsService = require('./jobs.service');
 
 async function search(req, res, next) {
   try {
-    const { country, state, city, q, job_type, page } = req.query;
-    const jobs = await jobsService.searchJobs({ country, state, city, q, job_type, page });
-    res.json({ jobs, page: Number(page) || 1, count: jobs.length });
+    const { country, state, city, q, job_type, page, limit } = req.query;
+    const result = await jobsService.searchJobs({ country, state, city, q, job_type, page, limit });
+    res.json(result);
   } catch (err) {
     next(err);
   }
