@@ -20,7 +20,6 @@ const cors = require('cors');
 
 // Security and parsing
 app.use(cors());
-// Relax helmet CSP so Swagger UI (CDN assets) loads correctly
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -35,7 +34,7 @@ app.use(
     },
   })
 );
-app.use(express.json({ limit: '5mb' })); // allow base64 avatar uploads
+app.use(express.json({ limit: '3mb' })); 
 
 // HTTP request logging
 app.use(morgan('combined', { stream: logger.stream }));
@@ -57,12 +56,11 @@ app.use(limiter);
 const { health } = require('./common/health.controller');
 app.get('/health', health);
 
-// Expose raw OpenAPI spec for the interactive tester on index.html
 app.get('/api-spec.json', (req, res) => {
   res.json(swaggerSpec);
 });
 
-// Swagger UI at /docs
+// Swagger UI 
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   swaggerOptions: {
     persistAuthorization: true,
