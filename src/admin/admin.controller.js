@@ -1,5 +1,36 @@
 const adminService = require('./admin.service');
 
+// ── Users ─────────────────────────────────────────────────────────────────────
+
+// GET /api/admin/users
+async function getUsers(req, res, next) {
+  try {
+    const data = await adminService.getUsers(req.query);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PATCH /api/admin/users/:id/role
+async function updateUserRole(req, res, next) {
+  try {
+    const user = await adminService.updateUserRole(req.params.id, req.body.role);
+    res.json(user);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// DELETE /api/admin/users/:id
+async function deleteUser(req, res, next) {
+  try {
+    await adminService.deleteUser(req.params.id);
+    res.json({ message: 'User deleted' });
+  } catch (err) {
+    next(err);
+  }
+}
 // ── Jobs ──────────────────────────────────────────────────────────────────────
 
 // POST /api/admin/jobs
@@ -117,6 +148,9 @@ async function deleteScholarship(req, res, next) {
 }
 
 module.exports = {
+  getUsers,         
+  updateUserRole,   
+  deleteUser,   
   createJobs,
   getJobs,
   getJobById,
