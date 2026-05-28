@@ -2,6 +2,7 @@ const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
+const path = require('path');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./docs/swagger');
 const logger = require('./common/logger');
@@ -11,7 +12,7 @@ const jobsRoutes         = require('./jobs/jobs.routes');
 const scholarshipsRoutes = require('./scholarships/scholarships.routes');
 const scraperRoutes      = require('./scraper/scraper.routes');
 const adminRoutes        = require('./admin/admin.routes');
-const userRoutes         = require('./user/user.routes'); // ADD THIS LINE
+const userRoutes         = require('./user/user.routes');
 const errorHandler       = require('./common/errorHandler');
 
 const app = express();
@@ -19,13 +20,27 @@ const cors = require('cors');
 
 // Security and parsing
 app.use(cors());
-app.use(helmet());
-app.use(express.json());
+// Relax helmet CSP so Swagger UI (CDN assets) loads correctly
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc:  ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net', 'unpkg.com'],
+        styleSrc:   ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net', 'unpkg.com', 'fonts.googleapis.com'],
+        fontSrc:    ["'self'", 'fonts.gstatic.com', 'cdnjs.cloudflare.com'],
+        imgSrc:     ["'self'", 'data:', 'validator.swagger.io'],
+        connectSrc: ["'self'"],
+      },
+    },
+  })
+);
+app.use(express.json({ limit: '5mb' })); // allow base64 avatar uploads
 
 // HTTP request logging
 app.use(morgan('combined', { stream: logger.stream }));
 
-// Rate limiting — Fixed for Vercel proxy
+// Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -38,20 +53,32 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Health check (detailed)
+// Health check
 const { health } = require('./common/health.controller');
 app.get('/health', health);
 
-// Swagger UI
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// Expose raw OpenAPI spec for the interactive tester on index.html
+app.get('/api-spec.json', (req, res) => {
+  res.json(swaggerSpec);
+});
 
-// Routes
+// Swagger UI at /docs
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  swaggerOptions: {
+    persistAuthorization: true,
+  },
+}));
+
+// Serve the static landing page
+app.use(express.static(path.join(__dirname, '../public')));
+
+// API Routes
 app.use('/api/auth',         authRoutes);
 app.use('/api/jobs',         jobsRoutes);
 app.use('/api/scholarships', scholarshipsRoutes);
 app.use('/api/scraper',      scraperRoutes);
 app.use('/api/admin',        adminRoutes);
-app.use('/api/user',         userRoutes); 
+app.use('/api/user',         userRoutes);
 
 app.use(errorHandler);
 

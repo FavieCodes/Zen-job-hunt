@@ -678,6 +678,84 @@ curl -X GET "https://zen-job-hunt.vercel.app/api/user/profile" \
         </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════════
+         INTERACTIVE API TESTER
+    ════════════════════════════════════════════════════════════════ -->
+    <div class="container">
+      <div class="endpoints-section" id="tester" style="margin-bottom:3rem;">
+        <div class="section-title">
+          <i class="fas fa-flask" style="color:#06b6d4"></i>
+          <h2>Interactive API Tester</h2>
+        </div>
+        <p style="color:#4b5563;margin-bottom:1.5rem;">Test any endpoint directly from this page. Set a Bearer token once and it will be sent on every authenticated request.</p>
+
+        <!-- Token input -->
+        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">
+          <label style="font-weight:600;color:#1e3a8a;display:block;margin-bottom:0.5rem;"><i class="fas fa-key"></i> Bearer Token (optional)</label>
+          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+            <input id="tester-token" type="text" placeholder="Paste your JWT access token here…"
+              style="flex:1;min-width:260px;padding:0.65rem 1rem;border:1px solid #cbd5e1;border-radius:8px;font-family:monospace;font-size:0.85rem;outline:none;" />
+            <button onclick="clearToken()" style="padding:0.65rem 1rem;background:#ef4444;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;">
+              <i class="fas fa-times"></i> Clear
+            </button>
+          </div>
+          <p id="token-hint" style="font-size:0.75rem;color:#64748b;margin-top:0.4rem;"></p>
+        </div>
+
+        <!-- Quick-fill preset endpoints -->
+        <div style="margin-bottom:1.25rem;">
+          <span style="font-weight:600;color:#1e3a8a;margin-right:0.75rem;font-size:0.875rem;">Quick fill:</span>
+          <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.5rem;" id="presets"></div>
+        </div>
+
+        <!-- Request builder -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;" class="tester-grid">
+          <div>
+            <label style="font-weight:600;color:#1e3a8a;font-size:0.875rem;">Method</label>
+            <select id="tester-method" style="width:100%;margin-top:0.35rem;padding:0.65rem;border:1px solid #cbd5e1;border-radius:8px;font-weight:700;background:white;">
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PATCH">PATCH</option>
+              <option value="PUT">PUT</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-weight:600;color:#1e3a8a;font-size:0.875rem;">Path</label>
+            <input id="tester-path" type="text" value="/api/jobs" placeholder="/api/jobs?page=1"
+              style="width:100%;margin-top:0.35rem;padding:0.65rem;border:1px solid #cbd5e1;border-radius:8px;font-family:monospace;font-size:0.875rem;outline:none;" />
+          </div>
+        </div>
+
+        <div style="margin-bottom:1rem;">
+          <label style="font-weight:600;color:#1e3a8a;font-size:0.875rem;">Request Body (JSON) — ignored for GET/DELETE</label>
+          <textarea id="tester-body" rows="6" placeholder='{ "email": "user@example.com", "password": "secret123" }'
+            style="width:100%;margin-top:0.35rem;padding:0.75rem;border:1px solid #cbd5e1;border-radius:8px;font-family:monospace;font-size:0.85rem;resize:vertical;outline:none;"></textarea>
+        </div>
+
+        <button onclick="runRequest()" id="run-btn"
+          style="padding:0.75rem 2rem;background:linear-gradient(135deg,#06b6d4,#1e3a8a);color:white;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:0.5rem;">
+          <i class="fas fa-paper-plane"></i> Send Request
+        </button>
+
+        <!-- Response panel -->
+        <div id="response-panel" style="display:none;margin-top:1.5rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem;">
+            <span style="font-weight:700;color:#1e3a8a;font-size:1rem;"><i class="fas fa-reply"></i> Response</span>
+            <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+              <span id="resp-status" style="padding:0.25rem 0.75rem;border-radius:20px;font-weight:700;font-size:0.875rem;"></span>
+              <span id="resp-time"  style="font-size:0.8rem;color:#64748b;"></span>
+              <button onclick="copyResponse()" style="padding:0.35rem 0.75rem;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;font-size:0.8rem;">
+                <i class="fas fa-copy"></i> Copy
+              </button>
+            </div>
+          </div>
+          <pre id="resp-body" style="background:#0f172a;color:#e2e8f0;padding:1.25rem;border-radius:10px;overflow-x:auto;max-height:460px;overflow-y:auto;font-size:0.85rem;line-height:1.6;white-space:pre-wrap;word-break:break-word;"></pre>
+        </div>
+      </div>
+    </div>
+    <!-- END INTERACTIVE TESTER -->
+
     <footer class="footer">
         <p>
             <i class="fas fa-briefcase"></i> JobHunt Backend API | 
@@ -693,44 +771,189 @@ curl -X GET "https://zen-job-hunt.vercel.app/api/user/profile" \
         </p>
     </footer>
 
+    <style>
+      @media (max-width: 640px) {
+        .tester-grid { grid-template-columns: 1fr !important; }
+      }
+    </style>
+
     <script>
+        /* ── Stats ──────────────────────────────────────────────── */
         async function fetchStats() {
             try {
-                const [jobsRes, scholarshipsRes] = await Promise.all([
+                const [jobsRes, schRes] = await Promise.all([
                     fetch('/api/jobs?page=1&limit=1'),
                     fetch('/api/scholarships?page=1&limit=1')
                 ]);
-                
-                const jobCountElem = document.getElementById('jobCount');
-                const scholarshipCountElem = document.getElementById('scholarshipCount');
-                
-                if (jobCountElem) jobCountElem.textContent = '1,000+';
-                if (scholarshipCountElem) scholarshipCountElem.textContent = '500+';
-            } catch (error) {
-                console.error('Failed to fetch stats:', error);
-                document.getElementById('jobCount').textContent = 'N/A';
-                document.getElementById('scholarshipCount').textContent = 'N/A';
+                const jobsData = await jobsRes.json();
+                const schData  = await schRes.json();
+
+                const jobEl = document.getElementById('jobCount');
+                const schEl = document.getElementById('scholarshipCount');
+                if (jobEl) jobEl.textContent = jobsData.total != null ? jobsData.total.toLocaleString() : 'N/A';
+                if (schEl) schEl.textContent = schData.total  != null ? schData.total.toLocaleString()  : 'N/A';
+            } catch (e) {
+                const jobEl = document.getElementById('jobCount');
+                const schEl = document.getElementById('scholarshipCount');
+                if (jobEl) jobEl.textContent = 'N/A';
+                if (schEl) schEl.textContent = 'N/A';
             }
         }
-        
+
         document.getElementById('refreshStats')?.addEventListener('click', (e) => {
             e.preventDefault();
             fetchStats();
         });
-        
+
         fetchStats();
-        
-        async function checkHealth() {
+
+        /* ── Interactive Tester ─────────────────────────────────── */
+        const PRESETS = [
+            { label: '🔍 Jobs',           method: 'GET',  path: '/api/jobs?page=1&limit=5' },
+            { label: '🎓 Scholarships',    method: 'GET',  path: '/api/scholarships?page=1&limit=5' },
+            { label: '❤️ Health',          method: 'GET',  path: '/health' },
+            { label: '🔐 Login',           method: 'POST', path: '/api/auth/login',
+              body: '{\n  "email": "user@example.com",\n  "password": "YourPassword"\n}' },
+            { label: '📝 Signup',          method: 'POST', path: '/api/auth/signup',
+              body: '{\n  "email": "new@example.com",\n  "username": "newuser",\n  "password": "Password123"\n}' },
+            { label: '👤 My Profile',      method: 'GET',  path: '/api/user/profile' },
+            { label: '📋 My Applications', method: 'GET',  path: '/api/user/applications' },
+            { label: '🔖 Saved Jobs',      method: 'GET',  path: '/api/user/saved' },
+            { label: '📊 My Stats',        method: 'GET',  path: '/api/user/stats' },
+            { label: '🔑 Reset Password',  method: 'POST', path: '/api/auth/reset-password',
+              body: '{\n  "oldPassword": "OldPass123",\n  "newPassword": "NewPass123",\n  "confirmNewPassword": "NewPass123"\n}' },
+        ];
+
+        function buildPresets() {
+            const container = document.getElementById('presets');
+            PRESETS.forEach(p => {
+                const btn = document.createElement('button');
+                btn.textContent = p.label;
+                btn.style.cssText = 'padding:0.4rem 0.85rem;border:1px solid #06b6d4;border-radius:20px;background:white;color:#06b6d4;cursor:pointer;font-size:0.8rem;font-weight:600;transition:all .2s;';
+                btn.onmouseenter = () => { btn.style.background='#06b6d4'; btn.style.color='white'; };
+                btn.onmouseleave = () => { btn.style.background='white';   btn.style.color='#06b6d4'; };
+                btn.onclick = () => {
+                    document.getElementById('tester-method').value = p.method;
+                    document.getElementById('tester-path').value   = p.path;
+                    document.getElementById('tester-body').value   = p.body || '';
+                };
+                container.appendChild(btn);
+            });
+        }
+        buildPresets();
+
+        function clearToken() {
+            document.getElementById('tester-token').value = '';
+            document.getElementById('token-hint').textContent = '';
+        }
+
+        document.getElementById('tester-token').addEventListener('input', function() {
+            const v = this.value.trim();
+            if (!v) { document.getElementById('token-hint').textContent = ''; return; }
             try {
-                const res = await fetch('/health');
-                const data = await res.json();
-                console.log('Health check:', data);
-            } catch (error) {
-                console.error('Health check failed:', error);
+                const parts = v.split('.');
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
+                    const exp = payload.exp ? new Date(payload.exp * 1000).toLocaleString() : 'no expiry';
+                    document.getElementById('token-hint').textContent = `✅ Valid JWT — expires ${exp}`;
+                    document.getElementById('token-hint').style.color = '#10b981';
+                } else {
+                    throw new Error();
+                }
+            } catch {
+                document.getElementById('token-hint').textContent = '⚠️ Does not look like a JWT — double-check your token.';
+                document.getElementById('token-hint').style.color = '#f59e0b';
+            }
+        });
+
+        async function runRequest() {
+            const method  = document.getElementById('tester-method').value;
+            const path    = document.getElementById('tester-path').value.trim();
+            const bodyRaw = document.getElementById('tester-body').value.trim();
+            const token   = document.getElementById('tester-token').value.trim();
+
+            if (!path) { alert('Please enter a path.'); return; }
+
+            const btn = document.getElementById('run-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const opts = { method, headers };
+            if (!['GET','DELETE'].includes(method) && bodyRaw) {
+                try { JSON.parse(bodyRaw); } catch {
+                    alert('Request body is not valid JSON. Please fix it before sending.');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Request';
+                    return;
+                }
+                opts.body = bodyRaw;
+            }
+
+            const start = Date.now();
+            try {
+                const res  = await fetch(path, opts);
+                const ms   = Date.now() - start;
+                let text;
+                const ct = res.headers.get('content-type') || '';
+                if (ct.includes('application/json')) {
+                    const json = await res.json();
+                    text = JSON.stringify(json, null, 2);
+                } else {
+                    text = await res.text();
+                }
+
+                showResponse(res.status, text, ms);
+            } catch (err) {
+                showResponse(0, `Network error: ${err.message}\n\nMake sure the API server is running.`, Date.now() - start);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Request';
             }
         }
-        
-        checkHealth();
+
+        function showResponse(status, body, ms) {
+            const panel = document.getElementById('response-panel');
+            const statusEl = document.getElementById('resp-status');
+            const timeEl   = document.getElementById('resp-time');
+            const bodyEl   = document.getElementById('resp-body');
+
+            panel.style.display = 'block';
+            timeEl.textContent  = `${ms}ms`;
+
+            if (status === 0) {
+                statusEl.textContent = 'ERROR';
+                statusEl.style.cssText = 'padding:.25rem .75rem;border-radius:20px;font-weight:700;font-size:.875rem;background:#fee2e2;color:#dc2626;';
+            } else if (status >= 200 && status < 300) {
+                statusEl.textContent = `${status} OK`;
+                statusEl.style.cssText = 'padding:.25rem .75rem;border-radius:20px;font-weight:700;font-size:.875rem;background:#d1fae5;color:#059669;';
+            } else if (status >= 400) {
+                statusEl.textContent = `${status} ${status >= 500 ? 'Server Error' : 'Client Error'}`;
+                statusEl.style.cssText = 'padding:.25rem .75rem;border-radius:20px;font-weight:700;font-size:.875rem;background:#fee2e2;color:#dc2626;';
+            } else {
+                statusEl.textContent = status;
+                statusEl.style.cssText = 'padding:.25rem .75rem;border-radius:20px;font-weight:700;font-size:.875rem;background:#fef3c7;color:#d97706;';
+            }
+
+            bodyEl.textContent = body;
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function copyResponse() {
+            const text = document.getElementById('resp-body').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = event.currentTarget;
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                btn.style.background = '#d1fae5';
+                setTimeout(() => { btn.innerHTML = orig; btn.style.background = '#f1f5f9'; }, 1500);
+            });
+        }
+
+        /* ── Health check (silent, console only) ─────────────────── */
+        fetch('/health').then(r => r.json()).then(d => console.log('Health:', d)).catch(() => {});
     </script>
 </body>
 </html>
