@@ -18,59 +18,64 @@ const errorHandler       = require('./common/errorHandler');
 const app = express();
 const cors = require('cors');
 
-// Security and parsing
+// ── CORS ──────────────────────────────────────────────────────────────────────
 app.use(cors());
+
+// ── Helmet  ────────
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc:  ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net', 'unpkg.com'],
-        styleSrc:   ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net', 'unpkg.com', 'fonts.googleapis.com'],
-        fontSrc:    ["'self'", 'fonts.gstatic.com', 'cdnjs.cloudflare.com'],
-        imgSrc:     ["'self'", 'data:', 'validator.swagger.io'],
-        connectSrc: ["'self'"],
+        defaultSrc:  ["'self'"],
+        scriptSrc:   ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net', 'unpkg.com', 'cdnjs.cloudflare.com'],
+        styleSrc:    ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net', 'unpkg.com', 'fonts.googleapis.com', 'cdnjs.cloudflare.com'],
+        fontSrc:     ["'self'", 'fonts.gstatic.com', 'cdnjs.cloudflare.com'],
+        imgSrc:      ["'self'", 'data:', 'validator.swagger.io', 'cdn.jsdelivr.net', '*.ui-avatars.com'],
+        connectSrc:  ["'self'"],
+        workerSrc:   ["'self'", 'blob:'],
       },
     },
   })
 );
-app.use(express.json({ limit: '3mb' })); 
 
-// HTTP request logging
+// ── Body parsing ─────────────────
+app.use(express.json({ limit: '3mb' }));
+app.use(express.urlencoded({ extended: true, limit: '3mb' }));
+
+// ── HTTP request logging ──────────────────────────────────────────────────────
 app.use(morgan('combined', { stream: logger.stream }));
 
-// Rate limiting
+// ── Rate limiting ─────────────────────────────────────────────────────────────
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   validate: { trustProxy: false },
-  keyGenerator: (req) => {
-    return req.headers['x-forwarded-for'] || req.ip;
-  },
+  keyGenerator: (req) => req.headers['x-forwarded-for'] || req.ip,
 });
 app.use(limiter);
 
-// Health check
+// ── Health check ──────────────────────────────────────────────────────────────
 const { health } = require('./common/health.controller');
 app.get('/health', health);
 
-app.get('/api-spec.json', (req, res) => {
-  res.json(swaggerSpec);
-});
+app.get('/api-spec.json', (_req, res) => res.json(swaggerSpec));
 
-// Swagger UI 
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  swaggerOptions: {
-    persistAuthorization: true,
-  },
-}));
+// ── Swagger UI at /docs ───────────────────────────────────────────────────────
+app.use(
+  '/docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    swaggerOptions: { persistAuthorization: true },
+    customCss: '.swagger-ui .topbar { display: none }',
+  })
+);
 
-// Serve the static landing page
+// ── Static landing page ───────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, '../public')));
 
-// API Routes
+// ── API Routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth',         authRoutes);
 app.use('/api/jobs',         jobsRoutes);
 app.use('/api/scholarships', scholarshipsRoutes);
@@ -78,6 +83,7 @@ app.use('/api/scraper',      scraperRoutes);
 app.use('/api/admin',        adminRoutes);
 app.use('/api/user',         userRoutes);
 
+// ── Global error handler ──────────────────────────────────────────────────────
 app.use(errorHandler);
 
 module.exports = app;

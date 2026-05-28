@@ -1,6 +1,69 @@
 const db = require('../config/db');
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// USERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Get all users with optional search/role filter
+async function getUsers({ search, role } = {}) {
+  const conditions = [];
+  const params = [];
+
+  if (search) {
+    params.push(`%${search}%`);
+    conditions.push(`(username ILIKE $${params.length} OR email ILIKE $${params.length})`);
+  }
+  if (role && ['user', 'admin'].includes(role)) {
+    params.push(role);
+    conditions.push(`role = $${params.length}`);
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const result = await db.query(
+    `SELECT id, email, username, role, is_confirmed, created_at,
+            avatar, COALESCE(is_google_user, FALSE) AS is_google_user
+     FROM users
+     ${where}
+     ORDER BY created_at DESC`,
+    params
+  );
+
+  return result.rows;
+}
+
+// Update a user's role
+async function updateUserRole(userId, role) {
+  const result = await db.query(
+    `UPDATE users SET role = $1 WHERE id = $2
+     RETURNING id, email, username, role, is_confirmed, created_at, avatar`,
+    [role, userId]
+  );
+
+  if (result.rows.length === 0) {
+    const err = new Error('User not found');
+    err.status = 404;
+    throw err;
+  }
+
+  return result.rows[0];
+}
+
+// Delete a user by ID
+async function deleteUser(userId) {
+  const result = await db.query(
+    'DELETE FROM users WHERE id = $1 RETURNING id',
+    [userId]
+  );
+
+  if (result.rows.length === 0) {
+    const err = new Error('User not found');
+    err.status = 404;
+    throw err;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // JOBS
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -43,7 +106,7 @@ async function createJobs(payload) {
       if (res.rows.length > 0) {
         result.created++;
       } else {
-        result.skipped++; 
+        result.skipped++;
       }
     } catch (err) {
       result.errors.push({ item: job, error: err.message });
@@ -300,6 +363,9 @@ async function deleteScholarship(id) {
 }
 
 module.exports = {
+  getUsers,
+  updateUserRole,
+  deleteUser,
   createJobs,
   getJobs,
   getJobById,
