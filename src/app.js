@@ -21,7 +21,7 @@ const cors = require('cors');
 // ── CORS ──────────────────────────────────────────────────────────────────────
 app.use(cors());
 
-// ── Helmet  ────────
+// ── Helmet with relaxed CSP so Swagger UI (CDN assets) loads correctly ────────
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -38,9 +38,9 @@ app.use(
   })
 );
 
-// ── Body parsing ─────────────────
-app.use(express.json({ limit: '3mb' }));
-app.use(express.urlencoded({ extended: true, limit: '3mb' }));
+// ── Body parsing — 10 mb to accommodate base64 avatar uploads ─────────────────
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ── HTTP request logging ──────────────────────────────────────────────────────
 app.use(morgan('combined', { stream: logger.stream }));

@@ -27,22 +27,54 @@ const isServerless = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_RUNTIM
 
 const pool = new Pool({
   connectionString: databaseUrl,
-  // For serverless, use smaller pool and shorter timeouts
-  max: isServerless ? 1 : 10,  
+  max: isServerless ? 1 : 10,
   idleTimeoutMillis: isServerless ? 10_000 : 30_000,
   connectionTimeoutMillis: isServerless ? 3_000 : 5_000,
-  // For serverless, add pgBouncer mode if supported
-  ...(isServerless && { statement_timeout: 10000 }), 
+  ...(isServerless && { statement_timeout: 10000 }),
 });
 
 pool.on('error', (err) => {
   logger.error('[db] Unexpected pool error: ' + err.message);
 });
 
+
+// Add is_google_user flag to users
+async function runMigrations(client) {
+  const migrations = [
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_google_user BOOLEAN DEFAULT FALSE`,
+  ];
+
+  for (const sql of migrations) {
+    try {
+      await client.query(sql);
+    } catch (err) {
+      logger.warn('[db] Migration skipped: ' + err.message);
+    }
+  }
+}
+
+let migrationsRan = false;
+
+
+const originalQuery = pool.query.bind(pool);
+pool.query = async function (...args) {
+  if (!migrationsRan) {
+    migrationsRan = true; 
+    const client = await pool.connect();
+    try {
+      await runMigrations(client);
+    } finally {
+      client.release();
+    }
+  }
+  return originalQuery(...args);
+};
+
 if (!isServerless) {
   pool.connect()
-    .then((client) => {
+    .then(async (client) => {
       logger.info('[db] PostgreSQL connected successfully');
+      await runMigrations(client);
       client.release();
     })
     .catch((err) => {

@@ -1,7 +1,8 @@
 const db = require('../config/db');
 const logger = require('../common/logger');
 
-// Get user profile by ID
+// ── Profile ───────────────────────────────────────────────────────────────────
+
 async function getUserProfile(userId) {
   const result = await db.query(
     `SELECT id, email, username, created_at, avatar, is_confirmed, role,
@@ -20,8 +21,14 @@ async function getUserProfile(userId) {
   return result.rows[0];
 }
 
-// Update user profile
 async function updateUserProfile(userId, updates) {
+  // Validate avatar size — base64 for a 5 MB image is ~6.8 MB string
+  if (updates.avatar && updates.avatar.length > 9 * 1024 * 1024) {
+    const err = new Error('Avatar image is too large. Maximum size is 6 MB.');
+    err.status = 400;
+    throw err;
+  }
+
   const allowedFields = ['username', 'avatar'];
   const fields = [];
   const values = [];
@@ -45,7 +52,8 @@ async function updateUserProfile(userId, updates) {
     `UPDATE users
      SET ${fields.join(', ')}
      WHERE id = $${paramCount}
-     RETURNING id, email, username, avatar, created_at, COALESCE(is_google_user, FALSE) AS is_google_user`,
+     RETURNING id, email, username, avatar, created_at,
+               COALESCE(is_google_user, FALSE) AS is_google_user`,
     values
   );
 
@@ -58,7 +66,8 @@ async function updateUserProfile(userId, updates) {
   return result.rows[0];
 }
 
-// Get user's job applications
+// ── Applications ──────────────────────────────────────────────────────────────
+
 async function getUserApplications(userId) {
   try {
     const result = await db.query(
@@ -92,7 +101,6 @@ async function getUserApplications(userId) {
   }
 }
 
-// Apply for a job
 async function applyForJob(userId, jobId) {
   const jobCheck = await db.query(
     'SELECT id, title FROM jobs WHERE id = $1 AND is_active = true',
@@ -129,7 +137,8 @@ async function applyForJob(userId, jobId) {
   return result.rows[0];
 }
 
-// Get user's saved jobs
+// ── Saved Jobs ────────────────────────────────────────────────────────────────
+
 async function getSavedJobs(userId) {
   try {
     const result = await db.query(
@@ -144,7 +153,7 @@ async function getSavedJobs(userId) {
         j.salary,
         j.apply_url,
         j.posted_at,
-        sj.created_at as saved_at
+        sj.created_at AS saved_at
        FROM saved_jobs sj
        JOIN jobs j ON sj.job_id = j.id
        WHERE sj.user_id = $1
@@ -161,12 +170,8 @@ async function getSavedJobs(userId) {
   }
 }
 
-// Save a job for later
 async function saveJob(userId, jobId) {
-  const jobCheck = await db.query(
-    'SELECT id FROM jobs WHERE id = $1',
-    [jobId]
-  );
+  const jobCheck = await db.query('SELECT id FROM jobs WHERE id = $1', [jobId]);
 
   if (jobCheck.rows.length === 0) {
     const err = new Error('Job not found');
@@ -187,7 +192,6 @@ async function saveJob(userId, jobId) {
   return result.rows[0] || { message: 'Job already saved' };
 }
 
-// Remove a saved job
 async function removeSavedJob(userId, jobId) {
   const result = await db.query(
     'DELETE FROM saved_jobs WHERE user_id = $1 AND job_id = $2 RETURNING id',
@@ -203,65 +207,66 @@ async function removeSavedJob(userId, jobId) {
   return { message: 'Job removed from saved' };
 }
 
-// Get application statistics
-async function getApplicationStats(userId) {
-  const result = await db.query(
-    `SELECT
-      COUNT(*) as total,
-      COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
-      COUNT(CASE WHEN status = 'reviewed' THEN 1 END) as reviewed,
-      COUNT(CASE WHEN status = 'accepted' THEN 1 END) as accepted,
-      COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected
-     FROM job_applications
-     WHERE user_id = $1`,
-    [userId]
-  );
+// ── Stats ─────────────────────────────────────────────────────────────────────
 
-  return result.rows[0] || { total: 0, pending: 0, reviewed: 0, accepted: 0, rejected: 0 };
+async function getApplicationStats(userId) {
+  try {
+    const result = await db.query(
+      `SELECT
+        COUNT(*) AS total,
+        COUNT(CASE WHEN status = 'pending'  THEN 1 END) AS pending,
+        COUNT(CASE WHEN status = 'reviewed' THEN 1 END) AS reviewed,
+        COUNT(CASE WHEN status = 'accepted' THEN 1 END) AS accepted,
+        COUNT(CASE WHEN status = 'rejected' THEN 1 END) AS rejected
+       FROM job_applications
+       WHERE user_id = $1`,
+      [userId]
+    );
+    return result.rows[0] || { total: 0, pending: 0, reviewed: 0, accepted: 0, rejected: 0 };
+  } catch (err) {
+    if (err.code === '42P01') return { total: 0, pending: 0, reviewed: 0, accepted: 0, rejected: 0 };
+    throw err;
+  }
 }
 
-// Create job_applications table if not exists
+// ── Table helpers ─────────────────────────────────────────────────────────────
+
 async function createApplicationsTable() {
   await db.query(`
     CREATE TABLE IF NOT EXISTS job_applications (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-      job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
-      status VARCHAR(50) DEFAULT 'pending',
-      notes TEXT,
+      id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
+      job_id     UUID REFERENCES jobs(id)  ON DELETE CASCADE,
+      status     VARCHAR(50) DEFAULT 'pending',
+      notes      TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(user_id, job_id)
     )
   `);
-
   await db.query(`
-    CREATE INDEX IF NOT EXISTS idx_job_applications_user ON job_applications(user_id);
-    CREATE INDEX IF NOT EXISTS idx_job_applications_job ON job_applications(job_id);
+    CREATE INDEX IF NOT EXISTS idx_job_applications_user   ON job_applications(user_id);
+    CREATE INDEX IF NOT EXISTS idx_job_applications_job    ON job_applications(job_id);
     CREATE INDEX IF NOT EXISTS idx_job_applications_status ON job_applications(status);
   `);
-
-  logger.info('Created job_applications table');
+  logger.info('[db] Created job_applications table');
 }
 
-// Create saved_jobs table if not exists
 async function createSavedJobsTable() {
   await db.query(`
     CREATE TABLE IF NOT EXISTS saved_jobs (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-      job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
+      id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
+      job_id     UUID REFERENCES jobs(id)  ON DELETE CASCADE,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(user_id, job_id)
     )
   `);
-
   await db.query(`
     CREATE INDEX IF NOT EXISTS idx_saved_jobs_user ON saved_jobs(user_id);
-    CREATE INDEX IF NOT EXISTS idx_saved_jobs_job ON saved_jobs(job_id);
+    CREATE INDEX IF NOT EXISTS idx_saved_jobs_job  ON saved_jobs(job_id);
   `);
-
-  logger.info('Created saved_jobs table');
+  logger.info('[db] Created saved_jobs table');
 }
 
 module.exports = {

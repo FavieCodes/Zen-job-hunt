@@ -3,957 +3,1099 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JobHunt API | Backend Documentation</title>
+    <title>JobHunt API | Interactive Documentation</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #06b6d4 0%, #1e3a8a 100%);
-            color: #1a1a2e;
-            line-height: 1.6;
-        }
-
-        /* Navigation */
-        .navbar {
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .nav-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #06b6d4;
-        }
-
-        .logo i {
-            font-size: 2rem;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .nav-links a {
-            color: #1e3a8a;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-
-        .nav-links a:hover {
-            color: #06b6d4;
-        }
-
-        /* Hero Section */
-        .hero {
-            background: linear-gradient(135deg, #06b6d4 0%, #1e3a8a 100%);
-            color: white;
-            padding: 4rem 2rem;
-            text-align: center;
-        }
-
-        .hero h1 {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            font-weight: 800;
-        }
-
-        .hero p {
-            font-size: 1.25rem;
-            max-width: 600px;
-            margin: 0 auto;
-            opacity: 0.95;
-        }
-
-        .hero-badge {
-            display: inline-block;
-            background: rgba(255,255,255,0.2);
-            padding: 0.5rem 1rem;
-            border-radius: 50px;
-            font-size: 0.875rem;
-            margin-top: 1.5rem;
-        }
-
-        /* Main Container */
-        .container {
-            max-width: 1400px;
-            margin: -2rem auto 3rem;
-            padding: 0 2rem;
-        }
-
-        /* Cards Grid */
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 3rem;
-        }
-
-        .card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-        }
-
-        .card-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #06b6d4 0%, #1e3a8a 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1rem;
-        }
-
-        .card-icon i {
-            font-size: 2rem;
-            color: white;
-        }
-
-        .card h3 {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-            color: #1e3a8a;
-        }
-
-        .card p {
-            color: #4b5563;
-            margin-bottom: 1rem;
-        }
-
-        .card .endpoint {
-            background: #f0fdf4;
-            padding: 0.5rem;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.875rem;
-            color: #06b6d4;
-            margin-top: 1rem;
-        }
-
-        /* Stats Section */
-        .stats {
-            background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 3rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 2rem;
-            text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        }
-
-        .stat-item h2 {
-            font-size: 2.5rem;
-            color: #06b6d4;
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-item p {
-            color: #1e3a8a;
-            font-weight: 500;
-        }
-
-        /* API Endpoints Table */
-        .endpoints-section {
-            background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 3rem;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        }
-
-        .section-title {
-            font-size: 1.75rem;
-            margin-bottom: 1.5rem;
-            color: #1e3a8a;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .section-title i {
-            color: #06b6d4;
-        }
-
-        .endpoint-table {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            text-align: left;
-            padding: 1rem;
-            background: #f0fdf4;
-            color: #1e3a8a;
-            font-weight: 600;
-        }
-
-        td {
-            padding: 1rem;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .method {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        .method.get { background: #10b981; color: white; }
-        .method.post { background: #06b6d4; color: white; }
-        .method.put { background: #f59e0b; color: white; }
-        .method.patch { background: #8b5cf6; color: white; }
-        .method.delete { background: #ef4444; color: white; }
-
-        .endpoint-path {
-            font-family: 'Courier New', monospace;
-            font-size: 0.875rem;
-            color: #1f2937;
-        }
-
-        /* Quick Links */
-        .quick-links {
-            background: white;
-            border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 3rem;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        }
-
-        .links-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-            margin-top: 1.5rem;
-        }
-
-        .link-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            background: #f0fdf4;
-            border-radius: 12px;
-            text-decoration: none;
-            color: #1e3a8a;
-            transition: all 0.3s;
-        }
-
-        .link-item:hover {
-            background: #06b6d4;
-            color: white;
-            transform: translateX(5px);
-        }
-
-        .link-item:hover i {
-            color: white;
-        }
-
-        .link-item i {
-            font-size: 1.5rem;
-            color: #06b6d4;
-        }
-
-        .link-item span {
-            font-weight: 500;
-        }
-
-        /* Environment Variables */
-        .env-section {
-            background: #1e3a8a;
-            color: white;
-            border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 3rem;
-        }
-
-        .env-section h3 {
-            margin-bottom: 1rem;
-            color: #06b6d4;
-        }
-
-        .env-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .env-item {
-            background: rgba(6, 182, 212, 0.2);
-            padding: 0.75rem;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 0.875rem;
-        }
-
-        .env-item strong {
-            color: #06b6d4;
-        }
-
-        /* Footer */
-        .footer {
-            background: #0f172a;
-            color: #94a3b8;
-            text-align: center;
-            padding: 2rem;
-            margin-top: 3rem;
-        }
-
-        .footer a {
-            color: #06b6d4;
-            text-decoration: none;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 2rem;
-            }
-            
-            .nav-container {
-                flex-direction: column;
-            }
-            
-            .container {
-                padding: 0 1rem;
-            }
-            
-            th, td {
-                padding: 0.5rem;
-                font-size: 0.875rem;
-            }
-        }
-
-        /* Alert/Banner */
-        .alert {
-            background: #fef3c7;
-            border-left: 4px solid #f59e0b;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-        }
-
-        .alert i {
-            margin-right: 0.5rem;
-            color: #f59e0b;
-        }
-
-        pre {
-            background: #1e293b;
-            color: #06b6d4;
-            padding: 1rem;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin-bottom: 1.5rem;
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f4f8;color:#1a1a2e;line-height:1.6}
+        /* ── Nav ── */
+        .navbar{background:rgba(255,255,255,.98);backdrop-filter:blur(10px);box-shadow:0 2px 20px rgba(0,0,0,.1);position:sticky;top:0;z-index:1000}
+        .nav-container{max-width:1400px;margin:0 auto;padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem}
+        .logo{display:flex;align-items:center;gap:.75rem;font-size:1.5rem;font-weight:700;color:#06b6d4}
+        .logo i{font-size:2rem}
+        .nav-links{display:flex;gap:1.5rem;flex-wrap:wrap}
+        .nav-links a{color:#1e3a8a;text-decoration:none;font-weight:500;font-size:.9rem;transition:color .3s}
+        .nav-links a:hover{color:#06b6d4}
+        /* ── Hero ── */
+        .hero{background:linear-gradient(135deg,#06b6d4 0%,#1e3a8a 100%);color:white;padding:4rem 2rem;text-align:center}
+        .hero h1{font-size:2.75rem;margin-bottom:1rem;font-weight:800}
+        .hero p{font-size:1.15rem;max-width:600px;margin:0 auto;opacity:.95}
+        .hero-badge{display:inline-block;background:rgba(255,255,255,.2);padding:.5rem 1rem;border-radius:50px;font-size:.875rem;margin-top:1.5rem}
+        /* ── Container ── */
+        .container{max-width:1400px;margin:-2rem auto 3rem;padding:0 2rem}
+        /* ── Stats ── */
+        .stats{background:white;border-radius:16px;padding:2rem;margin-bottom:2rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:2rem;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.08)}
+        .stat-item h2{font-size:2.25rem;color:#06b6d4;margin-bottom:.25rem}
+        .stat-item p{color:#1e3a8a;font-weight:500}
+        /* ── Quick links ── */
+        .quick-links{background:white;border-radius:16px;padding:2rem;margin-bottom:2rem;box-shadow:0 10px 40px rgba(0,0,0,.08)}
+        .links-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:1.25rem}
+        .link-item{display:flex;align-items:center;gap:1rem;padding:.85rem 1rem;background:#f0fdf4;border-radius:12px;text-decoration:none;color:#1e3a8a;transition:all .3s;border:1px solid #d1fae5}
+        .link-item:hover{background:#06b6d4;color:white;transform:translateX(4px)}
+        .link-item:hover i{color:white}
+        .link-item i{font-size:1.25rem;color:#06b6d4}
+        /* ── Section title ── */
+        .section-title{font-size:1.6rem;margin-bottom:1.25rem;color:#1e3a8a;display:flex;align-items:center;gap:.5rem}
+        .section-title i{color:#06b6d4}
+        /* ── Global token bar ── */
+        .token-bar{background:white;border-radius:16px;padding:1.5rem 2rem;margin-bottom:2rem;box-shadow:0 10px 40px rgba(0,0,0,.08);border-left:4px solid #06b6d4}
+        .token-bar h3{color:#1e3a8a;margin-bottom:.75rem;font-size:1rem}
+        .token-row{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center}
+        .token-row input{flex:1;min-width:260px;padding:.6rem 1rem;border:1.5px solid #cbd5e1;border-radius:8px;font-family:monospace;font-size:.82rem;outline:none;transition:border-color .2s}
+        .token-row input:focus{border-color:#06b6d4}
+        .token-hint{font-size:.75rem;margin-top:.4rem;color:#64748b}
+        .btn{padding:.6rem 1.25rem;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:.85rem;transition:all .2s}
+        .btn-clear{background:#fee2e2;color:#dc2626}
+        .btn-clear:hover{background:#fca5a5}
+        .btn-send{background:linear-gradient(135deg,#06b6d4,#1e3a8a);color:white;display:flex;align-items:center;gap:.4rem}
+        .btn-send:hover{opacity:.9;transform:translateY(-1px)}
+        .btn-send:disabled{opacity:.6;cursor:not-allowed;transform:none}
+        /* ── Endpoint group card ── */
+        .ep-group{background:white;border-radius:16px;padding:1.75rem 2rem;margin-bottom:2rem;box-shadow:0 10px 40px rgba(0,0,0,.08)}
+        .ep-group-title{display:flex;align-items:center;gap:.6rem;font-size:1.2rem;font-weight:700;color:#1e3a8a;margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:2px solid #e2e8f0}
+        .ep-group-title i{color:#06b6d4;font-size:1.1rem}
+        /* ── Individual endpoint tester ── */
+        .ep-tester{border:1px solid #e2e8f0;border-radius:12px;margin-bottom:1rem;overflow:hidden}
+        .ep-header{display:flex;align-items:center;gap:.75rem;padding:.85rem 1.25rem;background:#f8fafc;cursor:pointer;user-select:none;transition:background .2s}
+        .ep-header:hover{background:#f0f9ff}
+        .ep-header .method{display:inline-block;padding:.2rem .65rem;border-radius:6px;font-size:.7rem;font-weight:700;text-transform:uppercase;min-width:52px;text-align:center;flex-shrink:0}
+        .method.get{background:#10b981;color:white}
+        .method.post{background:#06b6d4;color:white}
+        .method.patch{background:#8b5cf6;color:white}
+        .method.put{background:#f59e0b;color:white}
+        .method.delete{background:#ef4444;color:white}
+        .ep-path{font-family:'Courier New',monospace;font-size:.875rem;color:#1f2937;font-weight:600;flex:1}
+        .ep-desc{font-size:.8rem;color:#64748b;flex-shrink:0}
+        .ep-auth{font-size:.75rem;margin-left:auto;flex-shrink:0}
+        .ep-chevron{font-size:.75rem;color:#94a3b8;transition:transform .25s;flex-shrink:0}
+        .ep-body{display:none;padding:1.25rem;border-top:1px solid #e2e8f0;background:white}
+        .ep-body.open{display:block}
+        .ep-chevron.open{transform:rotate(180deg)}
+        /* form fields inside tester */
+        .field-row{margin-bottom:.9rem}
+        .field-row label{display:block;font-size:.8rem;font-weight:600;color:#1e3a8a;margin-bottom:.3rem}
+        .field-row input,.field-row textarea,.field-row select{width:100%;padding:.6rem .9rem;border:1.5px solid #cbd5e1;border-radius:8px;font-family:monospace;font-size:.82rem;outline:none;transition:border-color .2s;background:white;color:#1f2937}
+        .field-row input:focus,.field-row textarea:focus,.field-row select:focus{border-color:#06b6d4}
+        .field-row textarea{resize:vertical;min-height:90px}
+        .field-hint{font-size:.72rem;color:#94a3b8;margin-top:.2rem}
+        .fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+        /* response */
+        .resp-panel{margin-top:1rem;display:none}
+        .resp-panel.show{display:block}
+        .resp-meta{display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem;flex-wrap:wrap}
+        .resp-status{padding:.2rem .65rem;border-radius:20px;font-weight:700;font-size:.8rem}
+        .resp-status.ok{background:#d1fae5;color:#059669}
+        .resp-status.err{background:#fee2e2;color:#dc2626}
+        .resp-status.warn{background:#fef3c7;color:#d97706}
+        .resp-time{font-size:.75rem;color:#64748b}
+        .resp-copy{padding:.25rem .6rem;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;font-size:.75rem}
+        pre.resp-body{background:#0f172a;color:#e2e8f0;padding:1rem 1.25rem;border-radius:10px;overflow-x:auto;max-height:380px;overflow-y:auto;font-size:.8rem;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+        /* ── Env section ── */
+        .env-section{background:#1e3a8a;color:white;border-radius:16px;padding:2rem;margin-bottom:2rem}
+        .env-section h3{margin-bottom:1rem;color:#06b6d4}
+        .env-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-top:1rem}
+        .env-item{background:rgba(6,182,212,.15);padding:.75rem;border-radius:8px;font-family:monospace;font-size:.85rem}
+        .env-item strong{color:#06b6d4}
+        /* ── Footer ── */
+        .footer{background:#0f172a;color:#94a3b8;text-align:center;padding:2rem;margin-top:3rem}
+        .footer a{color:#06b6d4;text-decoration:none}
+        @media(max-width:768px){
+            .hero h1{font-size:2rem}
+            .container{padding:0 1rem}
+            .fields-grid{grid-template-columns:1fr}
+            .ep-desc{display:none}
         }
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="logo">
-                <i class="fas fa-briefcase"></i>
-                <span>JobHunt API</span>
-            </div>
-            <div class="nav-links">
-                <a href="#endpoints"><i class="fas fa-code"></i> API</a>
-                <a href="#user-endpoints"><i class="fas fa-user"></i> User</a>
-                <a href="#docs"><i class="fas fa-book"></i> Swagger</a>
-                <a href="#health"><i class="fas fa-heartbeat"></i> Health</a>
-            </div>
-        </div>
-    </nav>
 
-    <div class="hero">
-        <h1>
-            <i class="fas fa-briefcase"></i> JobHunt Backend API
-        </h1>
-        <p>Powerful job and scholarship aggregation platform with AI-powered scraping and comprehensive search capabilities</p>
-        <div class="hero-badge">
-            <i class="fas fa-check-circle"></i> REST API | Version 1.0.0
+<nav class="navbar">
+    <div class="nav-container">
+        <div class="logo"><i class="fas fa-briefcase"></i><span>JobHunt API</span></div>
+        <div class="nav-links">
+            <a href="#token-section"><i class="fas fa-key"></i> Token</a>
+            <a href="#auth-section"><i class="fas fa-lock"></i> Auth</a>
+            <a href="#user-section"><i class="fas fa-user"></i> User</a>
+            <a href="#jobs-section"><i class="fas fa-briefcase"></i> Jobs</a>
+            <a href="#scholarships-section"><i class="fas fa-graduation-cap"></i> Scholarships</a>
+            <a href="#admin-section"><i class="fas fa-shield-alt"></i> Admin</a>
+            <a href="#scraper-section"><i class="fas fa-robot"></i> Scraper</a>
+            <a href="/docs" target="_blank"><i class="fas fa-book"></i> Swagger</a>
+        </div>
+    </div>
+</nav>
+
+<div class="hero">
+    <h1><i class="fas fa-briefcase"></i> JobHunt Backend API</h1>
+    <p>Interactive API documentation — test every endpoint directly from this page</p>
+    <div class="hero-badge"><i class="fas fa-check-circle"></i> REST API &nbsp;|&nbsp; Version 1.0.0 &nbsp;|&nbsp; Express.js + PostgreSQL</div>
+</div>
+
+<div class="container">
+
+    <!-- Stats -->
+    <div class="stats">
+        <div class="stat-item"><h2 id="jobCount">--</h2><p><i class="fas fa-briefcase"></i> Total Jobs</p></div>
+        <div class="stat-item"><h2 id="scholarshipCount">--</h2><p><i class="fas fa-graduation-cap"></i> Scholarships</p></div>
+        <div class="stat-item"><h2>15+</h2><p><i class="fas fa-database"></i> Data Sources</p></div>
+        <div class="stat-item"><h2>24/7</h2><p><i class="fas fa-clock"></i> Auto-Scraping</p></div>
+    </div>
+
+    <!-- Quick links -->
+    <div class="quick-links">
+        <div class="section-title"><i class="fas fa-rocket"></i><h2>Quick Access</h2></div>
+        <div class="links-grid">
+            <a href="/docs" class="link-item" target="_blank"><i class="fas fa-book"></i><span>Swagger UI Docs</span></a>
+            <a href="/health" class="link-item" target="_blank"><i class="fas fa-heartbeat"></i><span>Health Check</span></a>
+            <a href="/api-spec.json" class="link-item" target="_blank"><i class="fas fa-code"></i><span>OpenAPI Spec (JSON)</span></a>
+            <a href="#" class="link-item" id="refreshStats"><i class="fas fa-sync-alt"></i><span>Refresh Stats</span></a>
         </div>
     </div>
 
-    <div class="container">
-        <!-- Stats -->
-        <div class="stats">
-            <div class="stat-item">
-                <h2 id="jobCount">--</h2>
-                <p><i class="fas fa-briefcase"></i> Total Jobs</p>
-            </div>
-            <div class="stat-item">
-                <h2 id="scholarshipCount">--</h2>
-                <p><i class="fas fa-graduation-cap"></i> Scholarships</p>
-            </div>
-            <div class="stat-item">
-                <h2>15+</h2>
-                <p><i class="fas fa-database"></i> Data Sources</p>
-            </div>
-            <div class="stat-item">
-                <h2>24/7</h2>
-                <p><i class="fas fa-clock"></i> Auto-Scraping</p>
-            </div>
-        </div>
-
-        <!-- Quick Links -->
-        <div class="quick-links">
-            <div class="section-title">
-                <i class="fas fa-rocket"></i>
-                <h2>Quick Access</h2>
-            </div>
-            <div class="links-grid">
-                <a href="/docs" class="link-item" target="_blank">
-                    <i class="fas fa-book"></i>
-                    <span>📖 Swagger API Documentation</span>
-                </a>
-                <a href="/health" class="link-item" target="_blank">
-                    <i class="fas fa-heartbeat"></i>
-                    <span>❤️ Health Check</span>
-                </a>
-                <a href="/api/vercel-health" class="link-item" target="_blank">
-                    <i class="fas fa-server"></i>
-                    <span>🔧 Vercel Health</span>
-                </a>
-            </div>
-        </div>
-
-        <!-- Alert for Vercel Users -->
-        <div class="alert">
-            <i class="fas fa-info-circle"></i>
-            <strong>Vercel Deployment:</strong> This API runs on serverless functions. Cron jobs are handled by cron-job.org. All endpoints are ready for production use!
-        </div>
-
-        <!-- Features Cards -->
-        <div class="cards-grid">
-            <div class="card">
-                <div class="card-icon">
-                    <i class="fas fa-search"></i>
-                </div>
-                <h3>Job Search</h3>
-                <p>Search jobs by country, state, city, job type, and keywords. Get detailed listings with company info, salaries, and application links.</p>
-                <div class="endpoint">
-                    <i class="fas fa-link"></i> GET /api/jobs?country=nigeria&job_type=remote
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-icon">
-                    <i class="fas fa-graduation-cap"></i>
-                </div>
-                <h3>Scholarships</h3>
-                <p>Discover scholarships worldwide. Filter by country, field of study, and upcoming deadlines.</p>
-                <div class="endpoint">
-                    <i class="fas fa-link"></i> GET /api/scholarships?country=uk&field=engineering
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-icon">
-                    <i class="fas fa-user"></i>
-                </div>
-                <h3>User Management</h3>
-                <p>Manage your profile, track job applications, save jobs for later, and view application statistics.</p>
-                <div class="endpoint">
-                    <i class="fas fa-link"></i> GET /api/user/profile | POST /api/user/applications
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-icon">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <h3>AI-Powered Scraping</h3>
-                <p>Automated scraping from 15+ sources using AI (Groq, Gemini, Anthropic) to extract job and scholarship data.</p>
-                <div class="endpoint">
-                    <i class="fas fa-link"></i> POST /api/scraper/trigger (Admin)
-                </div>
-            </div>
-        </div>
-
-        <!-- API Endpoints -->
-        <div class="endpoints-section" id="endpoints">
-            <div class="section-title">
-                <i class="fas fa-code"></i>
-                <h2>API Endpoints</h2>
-            </div>
-            
-            <div class="endpoint-table">
-                <table>
-                    <thead>
-                        <tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Auth</th></tr>
-                    </thead>
-                    <tbody>
-                        <!-- Auth -->
-                        <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/auth/signup</td><td>Register new user</td><td>❌</td></tr>
-                        <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/auth/login</td><td>Login with email/password</td><td>❌</td></tr>
-                        <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/auth/google</td><td>Google OAuth login</td><td>❌</td></tr>
-                        <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/auth/logout</td><td>Logout and revoke tokens</td><td>✅</td></tr>
-                        <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/auth/me</td><td>Get current user profile</td><td>✅</td></tr>
-                        <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/auth/forgot-password</td><td>Request password reset</td><td>❌</td></tr>
-                        <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/auth/reset-password/token</td><td>Reset password with token</td><td>❌</td></tr>
-                        <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/auth/confirm</td><td>Confirm email registration</td><td>❌</td></tr>
-                        
-                        <!-- User -->
-                        <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/user/profile</td><td>Get user profile</td><td>✅</td></tr>
-                        <tr><td><span class="method patch">PATCH</span></td><td class="endpoint-path">/api/user/profile</td><td>Update user profile</td><td>✅</td></tr>
-                        <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/user/applications</td><td>Get job applications</td><td>✅</td></tr>
-                        <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/user/applications</td><td>Apply for a job</td><td>✅</td></tr>
-                        <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/user/saved</td><td>Get saved jobs</td><td>✅</td></tr>
-                        <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/user/saved</td><td>Save a job</td><td>✅</td></tr>
-                        <tr><td><span class="method delete">DELETE</span></td><td class="endpoint-path">/api/user/saved/:jobId</td><td>Remove saved job</td><td>✅</td></tr>
-                        <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/user/stats</td><td>Get application statistics</td><td>✅</td></tr>
-                        
-                        <!-- Jobs -->
-                        <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/jobs</td><td>Search jobs with filters</td><td>❌</td></tr>
-                        <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/jobs/:id</td><td>Get job by ID</td><td>❌</td></tr>
-                        
-                        <!-- Scholarships -->
-                        <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/scholarships</td><td>Search scholarships</td><td>❌</td></tr>
-                        
-                        <!-- Admin -->
-                        <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/admin/jobs</td><td>Create job(s)</td><td>👑 Admin</td></tr>
-                        <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/api/admin/jobs</td><td>List all jobs (admin)</td><td>👑 Admin</td></tr>
-                        <tr><td><span class="method patch">PATCH</span></td><td class="endpoint-path">/api/admin/jobs/:id</td><td>Update job</td><td>👑 Admin</td></tr>
-                        <tr><td><span class="method delete">DELETE</span></td><td class="endpoint-path">/api/admin/jobs/:id</td><td>Delete job</td><td>👑 Admin</td></tr>
-                        
-                        <!-- Scraper -->
-                        <tr><td><span class="method post">POST</span></td><td class="endpoint-path">/api/scraper/trigger</td><td>Manually trigger scraper</td><td>✅</td></tr>
-                        
-                        <!-- Health -->
-                        <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/health</td><td>System health check</td><td>❌</td></tr>
-                        <tr><td><span class="method get">GET</span></td><td class="endpoint-path">/docs</td><td>Swagger UI documentation</td><td>❌</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- User Endpoints Details -->
-        <div class="endpoints-section" id="user-endpoints">
-            <div class="section-title">
-                <i class="fas fa-user"></i>
-                <h2>User Management Endpoints</h2>
-            </div>
-            
-            <h3>Profile Management</h3>
-            <pre>
-GET    /api/user/profile     - Get current user profile
-PATCH  /api/user/profile     - Update username or avatar</pre>
-
-            <h3>Job Applications</h3>
-            <pre>
-GET    /api/user/applications - Get all applications
-POST   /api/user/applications - Apply for a job (body: {"job_id": "uuid"})
-GET    /api/user/stats        - Get application statistics</pre>
-
-            <h3>Saved Jobs</h3>
-            <pre>
-GET    /api/user/saved        - Get all saved jobs
-POST   /api/user/saved        - Save a job (body: {"job_id": "uuid"})
-DELETE /api/user/saved/:jobId - Remove saved job</pre>
-        </div>
-
-        <!-- Environment Variables -->
-        <div class="env-section">
-            <h3><i class="fas fa-key"></i> Required Environment Variables</h3>
-            <div class="env-grid">
-                <div class="env-item"><strong>DATABASE_URL</strong> - PostgreSQL connection string</div>
-                <div class="env-item"><strong>JWT_SECRET</strong> - JWT signing secret</div>
-                <div class="env-item"><strong>JWT_REFRESH_SECRET</strong> - Refresh token secret</div>
-                <div class="env-item"><strong>GOOGLE_CLIENT_ID</strong> - Google OAuth client ID</div>
-                <div class="env-item"><strong>SMTP_HOST/PASS</strong> - Email configuration</div>
-                <div class="env-item"><strong>FRONTEND_URL</strong> - Frontend application URL</div>
-                <div class="env-item"><strong>CRON_SECRET</strong> - Secret for cron-job.org</div>
-                <div class="env-item"><strong>REDIS_URL</strong> - Redis connection URL</div>
-            </div>
-        </div>
-
-        <!-- Example Usage -->
-        <div class="endpoints-section">
-            <div class="section-title">
-                <i class="fas fa-code"></i>
-                <h2>Example Usage</h2>
-            </div>
-            
-            <h3>Register a User</h3>
-            <pre>
-curl -X POST "https://zen-job-hunt.vercel.app/api/auth/signup" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "username": "johndoe",
-    "password": "SecurePass123"
-  }'</pre>
-
-            <h3>Login</h3>
-            <pre>
-curl -X POST "https://zen-job-hunt.vercel.app/api/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "SecurePass123"
-  }'</pre>
-
-            <h3>Apply for a Job (Authenticated)</h3>
-            <pre>
-curl -X POST "https://zen-job-hunt.vercel.app/api/user/applications" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"job_id": "550e8400-e29b-41d4-a716-446655440000"}'</pre>
-
-            <h3>Get User Profile</h3>
-            <pre>
-curl -X GET "https://zen-job-hunt.vercel.app/api/user/profile" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"</pre>
-        </div>
-
-        <!-- Footer Links -->
-        <div class="quick-links">
-            <div class="section-title">
-                <i class="fas fa-link"></i>
-                <h2>Useful Links</h2>
-            </div>
-            <div class="links-grid">
-                <a href="/docs" class="link-item" target="_blank">
-                    <i class="fas fa-book-open"></i>
-                    <span>Interactive API Docs (Swagger)</span>
-                </a>
-                <a href="/health" class="link-item" target="_blank">
-                    <i class="fas fa-chart-line"></i>
-                    <span>System Health Status</span>
-                </a>
-                <a href="https://cron-job.org" class="link-item" target="_blank">
-                    <i class="fas fa-clock"></i>
-                    <span>Cron Job Management</span>
-                </a>
-                <a href="#" class="link-item" id="refreshStats">
-                    <i class="fas fa-sync-alt"></i>
-                    <span>Refresh Statistics</span>
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════════════
-         INTERACTIVE API TESTER
+    <!-- ═══════════════════════════════════════════════════════════════
+         GLOBAL TOKEN BAR
     ════════════════════════════════════════════════════════════════ -->
-    <div class="container">
-      <div class="endpoints-section" id="tester" style="margin-bottom:3rem;">
-        <div class="section-title">
-          <i class="fas fa-flask" style="color:#06b6d4"></i>
-          <h2>Interactive API Tester</h2>
-        </div>
-        <p style="color:#4b5563;margin-bottom:1.5rem;">Test any endpoint directly from this page. Set a Bearer token once and it will be sent on every authenticated request.</p>
-
-        <!-- Token input -->
-        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">
-          <label style="font-weight:600;color:#1e3a8a;display:block;margin-bottom:0.5rem;"><i class="fas fa-key"></i> Bearer Token (optional)</label>
-          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
-            <input id="tester-token" type="text" placeholder="Paste your JWT access token here…"
-              style="flex:1;min-width:260px;padding:0.65rem 1rem;border:1px solid #cbd5e1;border-radius:8px;font-family:monospace;font-size:0.85rem;outline:none;" />
-            <button onclick="clearToken()" style="padding:0.65rem 1rem;background:#ef4444;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;">
-              <i class="fas fa-times"></i> Clear
+    <div class="token-bar" id="token-section">
+        <h3><i class="fas fa-key"></i> &nbsp;Global Bearer Token — set once, used by every authenticated request</h3>
+        <div class="token-row">
+            <input id="global-token" type="text" placeholder="Paste your JWT access token here (get one from POST /api/auth/login below)…" />
+            <button class="btn btn-clear" onclick="document.getElementById('global-token').value='';document.getElementById('token-hint').textContent=''">
+                <i class="fas fa-times"></i> Clear
             </button>
-          </div>
-          <p id="token-hint" style="font-size:0.75rem;color:#64748b;margin-top:0.4rem;"></p>
         </div>
-
-        <!-- Quick-fill preset endpoints -->
-        <div style="margin-bottom:1.25rem;">
-          <span style="font-weight:600;color:#1e3a8a;margin-right:0.75rem;font-size:0.875rem;">Quick fill:</span>
-          <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.5rem;" id="presets"></div>
-        </div>
-
-        <!-- Request builder -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;" class="tester-grid">
-          <div>
-            <label style="font-weight:600;color:#1e3a8a;font-size:0.875rem;">Method</label>
-            <select id="tester-method" style="width:100%;margin-top:0.35rem;padding:0.65rem;border:1px solid #cbd5e1;border-radius:8px;font-weight:700;background:white;">
-              <option value="GET">GET</option>
-              <option value="POST">POST</option>
-              <option value="PATCH">PATCH</option>
-              <option value="PUT">PUT</option>
-              <option value="DELETE">DELETE</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-weight:600;color:#1e3a8a;font-size:0.875rem;">Path</label>
-            <input id="tester-path" type="text" value="/api/jobs" placeholder="/api/jobs?page=1"
-              style="width:100%;margin-top:0.35rem;padding:0.65rem;border:1px solid #cbd5e1;border-radius:8px;font-family:monospace;font-size:0.875rem;outline:none;" />
-          </div>
-        </div>
-
-        <div style="margin-bottom:1rem;">
-          <label style="font-weight:600;color:#1e3a8a;font-size:0.875rem;">Request Body (JSON) — ignored for GET/DELETE</label>
-          <textarea id="tester-body" rows="6" placeholder='{ "email": "user@example.com", "password": "secret123" }'
-            style="width:100%;margin-top:0.35rem;padding:0.75rem;border:1px solid #cbd5e1;border-radius:8px;font-family:monospace;font-size:0.85rem;resize:vertical;outline:none;"></textarea>
-        </div>
-
-        <button onclick="runRequest()" id="run-btn"
-          style="padding:0.75rem 2rem;background:linear-gradient(135deg,#06b6d4,#1e3a8a);color:white;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:0.5rem;">
-          <i class="fas fa-paper-plane"></i> Send Request
-        </button>
-
-        <!-- Response panel -->
-        <div id="response-panel" style="display:none;margin-top:1.5rem;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem;">
-            <span style="font-weight:700;color:#1e3a8a;font-size:1rem;"><i class="fas fa-reply"></i> Response</span>
-            <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
-              <span id="resp-status" style="padding:0.25rem 0.75rem;border-radius:20px;font-weight:700;font-size:0.875rem;"></span>
-              <span id="resp-time"  style="font-size:0.8rem;color:#64748b;"></span>
-              <button onclick="copyResponse()" style="padding:0.35rem 0.75rem;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;font-size:0.8rem;">
-                <i class="fas fa-copy"></i> Copy
-              </button>
-            </div>
-          </div>
-          <pre id="resp-body" style="background:#0f172a;color:#e2e8f0;padding:1.25rem;border-radius:10px;overflow-x:auto;max-height:460px;overflow-y:auto;font-size:0.85rem;line-height:1.6;white-space:pre-wrap;word-break:break-word;"></pre>
-        </div>
-      </div>
+        <p id="token-hint" class="token-hint"></p>
     </div>
-    <!-- END INTERACTIVE TESTER -->
 
-    <footer class="footer">
-        <p>
-            <i class="fas fa-briefcase"></i> JobHunt Backend API | 
-            Built with Express.js, PostgreSQL, Redis | 
-            Deployed on Vercel
-        </p>
-        <p style="margin-top: 0.5rem; font-size: 0.875rem;">
-            <a href="/docs">API Documentation</a> • 
-            <a href="/health">Health Check</a>
-        </p>
-        <p style="margin-top: 0.5rem; font-size: 0.75rem;">
-            © 2026 JobHunt - Powering job and scholarship discovery
-        </p>
-    </footer>
+    <!-- ═══════════════════════════════════════════════════════════════
+         AUTH ENDPOINTS
+    ════════════════════════════════════════════════════════════════ -->
+    <div class="ep-group" id="auth-section">
+        <div class="ep-group-title"><i class="fas fa-lock"></i> Authentication</div>
 
-    <style>
-      @media (max-width: 640px) {
-        .tester-grid { grid-template-columns: 1fr !important; }
-      }
-    </style>
+        <!-- POST /api/auth/signup -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method post">POST</span>
+                <span class="ep-path">/api/auth/signup</span>
+                <span class="ep-desc">Register a new user account</span>
+                <span class="ep-auth">🔓 Public</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="fields-grid">
+                    <div class="field-row"><label>Email *</label><input type="email" placeholder="user@example.com" data-field="email" /></div>
+                    <div class="field-row"><label>Username *</label><input type="text" placeholder="johndoe" data-field="username" /></div>
+                    <div class="field-row"><label>Password *</label><input type="password" placeholder="Min 8 characters" data-field="password" /></div>
+                </div>
+                <button class="btn btn-send" onclick="sendBuilt(this,'POST','/api/auth/signup',['email','username','password'])">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
 
-    <script>
-        /* ── Stats ──────────────────────────────────────────────── */
-        async function fetchStats() {
-            try {
-                const [jobsRes, schRes] = await Promise.all([
-                    fetch('/api/jobs?page=1&limit=1'),
-                    fetch('/api/scholarships?page=1&limit=1')
-                ]);
-                const jobsData = await jobsRes.json();
-                const schData  = await schRes.json();
+        <!-- POST /api/auth/login -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method post">POST</span>
+                <span class="ep-path">/api/auth/login</span>
+                <span class="ep-desc">Login and get JWT tokens</span>
+                <span class="ep-auth">🔓 Public</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="fields-grid">
+                    <div class="field-row"><label>Email *</label><input type="email" placeholder="user@example.com" data-field="email" /></div>
+                    <div class="field-row"><label>Password *</label><input type="password" placeholder="Your password" data-field="password" /></div>
+                </div>
+                <p class="field-hint" style="margin-bottom:.75rem">💡 After a successful login, copy the <code>accessToken</code> from the response and paste it in the Global Token bar above.</p>
+                <button class="btn btn-send" onclick="sendBuilt(this,'POST','/api/auth/login',['email','password'],null,true)">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
 
-                const jobEl = document.getElementById('jobCount');
-                const schEl = document.getElementById('scholarshipCount');
-                if (jobEl) jobEl.textContent = jobsData.total != null ? jobsData.total.toLocaleString() : 'N/A';
-                if (schEl) schEl.textContent = schData.total  != null ? schData.total.toLocaleString()  : 'N/A';
-            } catch (e) {
-                const jobEl = document.getElementById('jobCount');
-                const schEl = document.getElementById('scholarshipCount');
-                if (jobEl) jobEl.textContent = 'N/A';
-                if (schEl) schEl.textContent = 'N/A';
+        <!-- POST /api/auth/google -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method post">POST</span>
+                <span class="ep-path">/api/auth/google</span>
+                <span class="ep-desc">Login / register via Google OAuth token</span>
+                <span class="ep-auth">🔓 Public</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="field-row"><label>Google ID Token *</label><input type="text" placeholder="Google credential token from Google Sign-In" data-field="token" /></div>
+                <button class="btn btn-send" onclick="sendBuilt(this,'POST','/api/auth/google',['token'])">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- GET /api/auth/me -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="ep-path">/api/auth/me</span>
+                <span class="ep-desc">Get currently authenticated user</span>
+                <span class="ep-auth">🔒 Auth</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <button class="btn btn-send" onclick="sendRaw(this,'GET','/api/auth/me')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- POST /api/auth/logout -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method post">POST</span>
+                <span class="ep-path">/api/auth/logout</span>
+                <span class="ep-desc">Revoke current tokens</span>
+                <span class="ep-auth">🔒 Auth</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="field-row"><label>Refresh Token (optional)</label><input type="text" placeholder="Your refresh token" data-field="refreshToken" /></div>
+                <button class="btn btn-send" onclick="sendBuilt(this,'POST','/api/auth/logout',['refreshToken'])">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- POST /api/auth/forgot-password -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method post">POST</span>
+                <span class="ep-path">/api/auth/forgot-password</span>
+                <span class="ep-desc">Request a password reset email</span>
+                <span class="ep-auth">🔓 Public</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="field-row"><label>Email *</label><input type="email" placeholder="user@example.com" data-field="email" /></div>
+                <button class="btn btn-send" onclick="sendBuilt(this,'POST','/api/auth/forgot-password',['email'])">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- POST /api/auth/reset-password/:token -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method post">POST</span>
+                <span class="ep-path">/api/auth/reset-password/:token</span>
+                <span class="ep-desc">Reset password using email token</span>
+                <span class="ep-auth">🔓 Public</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="fields-grid">
+                    <div class="field-row"><label>Reset Token (URL param) *</label><input type="text" placeholder="Token from reset email" data-field="__path_token" /></div>
+                    <div class="field-row"><label>New Password *</label><input type="password" placeholder="New password" data-field="newPassword" /></div>
+                </div>
+                <button class="btn btn-send" onclick="sendResetPassword(this)">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- POST /api/auth/change-password -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method post">POST</span>
+                <span class="ep-path">/api/auth/change-password</span>
+                <span class="ep-desc">Change password (logged-in users only)</span>
+                <span class="ep-auth">🔒 Auth</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="fields-grid">
+                    <div class="field-row"><label>Old Password *</label><input type="password" placeholder="Current password" data-field="oldPassword" /></div>
+                    <div class="field-row"><label>New Password *</label><input type="password" placeholder="New password" data-field="newPassword" /></div>
+                    <div class="field-row"><label>Confirm New Password *</label><input type="password" placeholder="Confirm new password" data-field="confirmNewPassword" /></div>
+                </div>
+                <button class="btn btn-send" onclick="sendBuilt(this,'POST','/api/auth/change-password',['oldPassword','newPassword','confirmNewPassword'])">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         USER ENDPOINTS
+    ════════════════════════════════════════════════════════════════ -->
+    <div class="ep-group" id="user-section">
+        <div class="ep-group-title"><i class="fas fa-user"></i> User Profile &amp; Applications</div>
+
+        <!-- GET /api/user/profile -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="ep-path">/api/user/profile</span>
+                <span class="ep-desc">Get your profile</span>
+                <span class="ep-auth">🔒 Auth</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <button class="btn btn-send" onclick="sendRaw(this,'GET','/api/user/profile')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- PATCH /api/user/profile -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method patch">PATCH</span>
+                <span class="ep-path">/api/user/profile</span>
+                <span class="ep-desc">Update username or avatar</span>
+                <span class="ep-auth">🔒 Auth</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="field-row"><label>Username (optional)</label><input type="text" placeholder="New username" data-field="username" /></div>
+                <div class="field-row"><label>Avatar URL (optional)</label><input type="text" placeholder="https://… or base64 data URI" data-field="avatar" /></div>
+                <button class="btn btn-send" onclick="sendBuilt(this,'PATCH','/api/user/profile',['username','avatar'])">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- GET /api/user/applications -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="ep-path">/api/user/applications</span>
+                <span class="ep-desc">List your job applications</span>
+                <span class="ep-auth">🔒 Auth</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <button class="btn btn-send" onclick="sendRaw(this,'GET','/api/user/applications')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- POST /api/user/applications -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method post">POST</span>
+                <span class="ep-path">/api/user/applications</span>
+                <span class="ep-desc">Apply for a job</span>
+                <span class="ep-auth">🔒 Auth</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="field-row"><label>Job ID (UUID) *</label><input type="text" placeholder="550e8400-e29b-41d4-a716-446655440000" data-field="job_id" /></div>
+                <button class="btn btn-send" onclick="sendBuilt(this,'POST','/api/user/applications',['job_id'])">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- GET /api/user/saved -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="ep-path">/api/user/saved</span>
+                <span class="ep-desc">Get saved jobs</span>
+                <span class="ep-auth">🔒 Auth</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <button class="btn btn-send" onclick="sendRaw(this,'GET','/api/user/saved')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- POST /api/user/saved -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method post">POST</span>
+                <span class="ep-path">/api/user/saved</span>
+                <span class="ep-desc">Save a job for later</span>
+                <span class="ep-auth">🔒 Auth</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="field-row"><label>Job ID (UUID) *</label><input type="text" placeholder="550e8400-e29b-41d4-a716-446655440000" data-field="job_id" /></div>
+                <button class="btn btn-send" onclick="sendBuilt(this,'POST','/api/user/saved',['job_id'])">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- DELETE /api/user/saved/:jobId -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method delete">DELETE</span>
+                <span class="ep-path">/api/user/saved/:jobId</span>
+                <span class="ep-desc">Remove a saved job</span>
+                <span class="ep-auth">🔒 Auth</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="field-row"><label>Job ID (UUID) *</label><input type="text" placeholder="550e8400-e29b-41d4-a716-446655440000" data-field="jobId" /></div>
+                <button class="btn btn-send" onclick="sendWithPathParam(this,'DELETE','/api/user/saved/','jobId')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- GET /api/user/stats -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="ep-path">/api/user/stats</span>
+                <span class="ep-desc">Application statistics</span>
+                <span class="ep-auth">🔒 Auth</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <button class="btn btn-send" onclick="sendRaw(this,'GET','/api/user/stats')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         JOBS (PUBLIC)
+    ════════════════════════════════════════════════════════════════ -->
+    <div class="ep-group" id="jobs-section">
+        <div class="ep-group-title"><i class="fas fa-briefcase"></i> Jobs (Public)</div>
+
+        <!-- GET /api/jobs -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="ep-path">/api/jobs</span>
+                <span class="ep-desc">Search and list jobs with filters</span>
+                <span class="ep-auth">🔓 Public</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="fields-grid">
+                    <div class="field-row"><label>country</label><input type="text" placeholder="Nigeria" data-qs="country" /></div>
+                    <div class="field-row"><label>state</label><input type="text" placeholder="Lagos" data-qs="state" /></div>
+                    <div class="field-row"><label>city</label><input type="text" placeholder="Ikeja" data-qs="city" /></div>
+                    <div class="field-row"><label>job_type</label>
+                        <select data-qs="job_type">
+                            <option value="">— any —</option>
+                            <option>full-time</option><option>part-time</option>
+                            <option>contract</option><option>remote</option><option>internship</option>
+                        </select>
+                    </div>
+                    <div class="field-row"><label>q (keyword)</label><input type="text" placeholder="engineer" data-qs="q" /></div>
+                    <div class="field-row"><label>page</label><input type="number" value="1" data-qs="page" /></div>
+                    <div class="field-row"><label>limit</label><input type="number" value="10" data-qs="limit" /></div>
+                </div>
+                <button class="btn btn-send" onclick="sendQuery(this,'GET','/api/jobs')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- GET /api/jobs/:id -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="ep-path">/api/jobs/:id</span>
+                <span class="ep-desc">Get a single job by ID</span>
+                <span class="ep-auth">🔓 Public</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="field-row"><label>Job ID (UUID) *</label><input type="text" placeholder="550e8400-e29b-41d4-a716-446655440000" data-field="id" /></div>
+                <button class="btn btn-send" onclick="sendWithPathParam(this,'GET','/api/jobs/','id')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SCHOLARSHIPS (PUBLIC)
+    ════════════════════════════════════════════════════════════════ -->
+    <div class="ep-group" id="scholarships-section">
+        <div class="ep-group-title"><i class="fas fa-graduation-cap"></i> Scholarships (Public)</div>
+
+        <!-- GET /api/scholarships -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="ep-path">/api/scholarships</span>
+                <span class="ep-desc">Search scholarships</span>
+                <span class="ep-auth">🔓 Public</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="fields-grid">
+                    <div class="field-row"><label>country</label><input type="text" placeholder="UK" data-qs="country" /></div>
+                    <div class="field-row"><label>field</label><input type="text" placeholder="Engineering" data-qs="field" /></div>
+                    <div class="field-row"><label>page</label><input type="number" value="1" data-qs="page" /></div>
+                    <div class="field-row"><label>limit</label><input type="number" value="10" data-qs="limit" /></div>
+                </div>
+                <button class="btn btn-send" onclick="sendQuery(this,'GET','/api/scholarships')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- GET /api/scholarships/:id -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="ep-path">/api/scholarships/:id</span>
+                <span class="ep-desc">Get a scholarship by ID</span>
+                <span class="ep-auth">🔓 Public</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="field-row"><label>Scholarship ID (UUID) *</label><input type="text" placeholder="550e8400-e29b-41d4-a716-446655440000" data-field="id" /></div>
+                <button class="btn btn-send" onclick="sendWithPathParam(this,'GET','/api/scholarships/','id')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         ADMIN ENDPOINTS
+    ════════════════════════════════════════════════════════════════ -->
+    <div class="ep-group" id="admin-section">
+        <div class="ep-group-title"><i class="fas fa-shield-alt"></i> Admin (requires admin JWT)</div>
+
+        <!-- GET /api/admin/users -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="ep-path">/api/admin/users</span>
+                <span class="ep-desc">List all users</span>
+                <span class="ep-auth">👑 Admin</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="fields-grid">
+                    <div class="field-row"><label>search (username/email)</label><input type="text" placeholder="john" data-qs="search" /></div>
+                    <div class="field-row"><label>role filter</label>
+                        <select data-qs="role"><option value="">— any —</option><option>user</option><option>admin</option></select>
+                    </div>
+                </div>
+                <button class="btn btn-send" onclick="sendQuery(this,'GET','/api/admin/users')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- PATCH /api/admin/users/:id/role -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method patch">PATCH</span>
+                <span class="ep-path">/api/admin/users/:id/role</span>
+                <span class="ep-desc">Change a user's role</span>
+                <span class="ep-auth">👑 Admin</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="fields-grid">
+                    <div class="field-row"><label>User ID (UUID) *</label><input type="text" placeholder="user uuid" data-field="userId" /></div>
+                    <div class="field-row"><label>New Role *</label>
+                        <select data-field="role"><option value="user">user</option><option value="admin">admin</option></select>
+                    </div>
+                </div>
+                <button class="btn btn-send" onclick="sendAdminUserRole(this)">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- DELETE /api/admin/users/:id -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method delete">DELETE</span>
+                <span class="ep-path">/api/admin/users/:id</span>
+                <span class="ep-desc">Delete a user permanently</span>
+                <span class="ep-auth">👑 Admin</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="field-row"><label>User ID (UUID) *</label><input type="text" placeholder="user uuid" data-field="userId" /></div>
+                <button class="btn btn-send" onclick="sendWithPathParam(this,'DELETE','/api/admin/users/','userId')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- POST /api/admin/jobs -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method post">POST</span>
+                <span class="ep-path">/api/admin/jobs</span>
+                <span class="ep-desc">Create one or many jobs (JSON body)</span>
+                <span class="ep-auth">👑 Admin</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="field-row">
+                    <label>JSON body (single object or array) *</label>
+                    <textarea data-raw="true" placeholder='{"title":"Backend Engineer","company":"Acme","country":"Nigeria","job_type":"full-time","apply_url":"https://acme.com/apply"}'></textarea>
+                </div>
+                <button class="btn btn-send" onclick="sendRawBody(this,'POST','/api/admin/jobs')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- GET /api/admin/jobs -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="ep-path">/api/admin/jobs</span>
+                <span class="ep-desc">List all jobs (admin view)</span>
+                <span class="ep-auth">👑 Admin</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="fields-grid">
+                    <div class="field-row"><label>search</label><input type="text" data-qs="search" /></div>
+                    <div class="field-row"><label>country</label><input type="text" data-qs="country" /></div>
+                    <div class="field-row"><label>job_type</label><input type="text" data-qs="job_type" /></div>
+                    <div class="field-row"><label>is_active</label>
+                        <select data-qs="is_active"><option value="">— any —</option><option value="true">true</option><option value="false">false</option></select>
+                    </div>
+                    <div class="field-row"><label>page</label><input type="number" value="1" data-qs="page" /></div>
+                    <div class="field-row"><label>limit</label><input type="number" value="20" data-qs="limit" /></div>
+                </div>
+                <button class="btn btn-send" onclick="sendQuery(this,'GET','/api/admin/jobs')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- PATCH /api/admin/jobs/:id -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method patch">PATCH</span>
+                <span class="ep-path">/api/admin/jobs/:id</span>
+                <span class="ep-desc">Update a job</span>
+                <span class="ep-auth">👑 Admin</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="field-row"><label>Job ID (UUID) *</label><input type="text" placeholder="job uuid" data-field="jobId" /></div>
+                <div class="field-row"><label>Fields to update (JSON) *</label><textarea data-raw="true" placeholder='{"title":"Senior Engineer","is_active":true}'></textarea></div>
+                <button class="btn btn-send" onclick="sendAdminPatch(this,'jobs','jobId')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- DELETE /api/admin/jobs/:id -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method delete">DELETE</span>
+                <span class="ep-path">/api/admin/jobs/:id</span>
+                <span class="ep-desc">Delete a job</span>
+                <span class="ep-auth">👑 Admin</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="field-row"><label>Job ID (UUID) *</label><input type="text" placeholder="job uuid" data-field="jobId" /></div>
+                <button class="btn btn-send" onclick="sendWithPathParam(this,'DELETE','/api/admin/jobs/','jobId')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- POST /api/admin/scholarships -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method post">POST</span>
+                <span class="ep-path">/api/admin/scholarships</span>
+                <span class="ep-desc">Create one or many scholarships</span>
+                <span class="ep-auth">👑 Admin</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="field-row">
+                    <label>JSON body *</label>
+                    <textarea data-raw="true" placeholder='{"title":"Chevening Scholarship","provider":"UK Govt","country":"UK","deadline":"2025-11-05","apply_url":"https://chevening.org/apply"}'></textarea>
+                </div>
+                <button class="btn btn-send" onclick="sendRawBody(this,'POST','/api/admin/scholarships')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- PATCH /api/admin/scholarships/:id -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method patch">PATCH</span>
+                <span class="ep-path">/api/admin/scholarships/:id</span>
+                <span class="ep-desc">Update a scholarship</span>
+                <span class="ep-auth">👑 Admin</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="field-row"><label>Scholarship ID (UUID) *</label><input type="text" placeholder="scholarship uuid" data-field="schId" /></div>
+                <div class="field-row"><label>Fields to update (JSON) *</label><textarea data-raw="true" placeholder='{"title":"Updated Title","is_active":false}'></textarea></div>
+                <button class="btn btn-send" onclick="sendAdminPatch(this,'scholarships','schId')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- DELETE /api/admin/scholarships/:id -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method delete">DELETE</span>
+                <span class="ep-path">/api/admin/scholarships/:id</span>
+                <span class="ep-desc">Delete a scholarship</span>
+                <span class="ep-auth">👑 Admin</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="field-row"><label>Scholarship ID (UUID) *</label><input type="text" placeholder="scholarship uuid" data-field="schId" /></div>
+                <button class="btn btn-send" onclick="sendWithPathParam(this,'DELETE','/api/admin/scholarships/','schId')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SCRAPER
+    ════════════════════════════════════════════════════════════════ -->
+    <div class="ep-group" id="scraper-section">
+        <div class="ep-group-title"><i class="fas fa-robot"></i> Scraper</div>
+
+        <!-- POST /api/scraper/trigger -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method post">POST</span>
+                <span class="ep-path">/api/scraper/trigger</span>
+                <span class="ep-desc">Manually trigger the scraper (runs in background)</span>
+                <span class="ep-auth">🔒 Auth</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <p class="field-hint" style="margin-bottom:.75rem">⚠️ This fires a long-running background process. The endpoint returns immediately with a confirmation message.</p>
+                <button class="btn btn-send" onclick="sendRaw(this,'POST','/api/scraper/trigger')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- GET /health -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="ep-path">/health</span>
+                <span class="ep-desc">System health check</span>
+                <span class="ep-auth">🔓 Public</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <button class="btn btn-send" onclick="sendRaw(this,'GET','/health')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Env vars reference -->
+    <div class="env-section">
+        <h3><i class="fas fa-key"></i> Required Environment Variables</h3>
+        <div class="env-grid">
+            <div class="env-item"><strong>DATABASE_URL</strong> — PostgreSQL connection string</div>
+            <div class="env-item"><strong>JWT_SECRET</strong> — JWT signing secret</div>
+            <div class="env-item"><strong>JWT_REFRESH_SECRET</strong> — Refresh token secret</div>
+            <div class="env-item"><strong>GOOGLE_CLIENT_ID</strong> — Google OAuth client ID</div>
+            <div class="env-item"><strong>SMTP_HOST / SMTP_PASS</strong> — Email config</div>
+            <div class="env-item"><strong>FRONTEND_URL</strong> — Frontend app URL</div>
+            <div class="env-item"><strong>CRON_SECRET</strong> — Secret for cron-job.org</div>
+            <div class="env-item"><strong>REDIS_URL</strong> — Redis connection URL (optional)</div>
+        </div>
+    </div>
+
+</div><!-- /container -->
+
+<footer class="footer">
+    <p><i class="fas fa-briefcase"></i> JobHunt Backend API &nbsp;|&nbsp; Built with Express.js, PostgreSQL, Redis &nbsp;|&nbsp; Deployed on Vercel</p>
+    <p style="margin-top:.5rem;font-size:.875rem"><a href="/docs">Swagger Docs</a> &nbsp;•&nbsp; <a href="/health">Health Check</a> &nbsp;•&nbsp; <a href="/api-spec.json">OpenAPI JSON</a></p>
+    <p style="margin-top:.5rem;font-size:.75rem">© 2026 JobHunt — Powering job and scholarship discovery</p>
+</footer>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   GLOBAL TOKEN
+══════════════════════════════════════════════════════════ */
+const tokenInput = document.getElementById('global-token');
+const tokenHint  = document.getElementById('token-hint');
+
+tokenInput.addEventListener('input', () => {
+    const v = tokenInput.value.trim();
+    if (!v) { tokenHint.textContent = ''; return; }
+    try {
+        const parts = v.split('.');
+        if (parts.length !== 3) throw new Error();
+        const p = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
+        const exp = p.exp ? new Date(p.exp*1000).toLocaleString() : 'no expiry';
+        tokenHint.style.color = '#10b981';
+        tokenHint.textContent = `✅ Valid JWT  |  user: ${p.userId||'?'}  |  expires: ${exp}`;
+    } catch {
+        tokenHint.style.color = '#f59e0b';
+        tokenHint.textContent = '⚠️ Does not look like a valid JWT — check your token.';
+    }
+});
+
+function getToken() { return tokenInput.value.trim(); }
+
+/* ══════════════════════════════════════════════════════════
+   ACCORDION
+══════════════════════════════════════════════════════════ */
+function toggle(header) {
+    const body    = header.nextElementSibling;
+    const chevron = header.querySelector('.ep-chevron');
+    const isOpen  = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    chevron.classList.toggle('open', !isOpen);
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSE DISPLAY
+══════════════════════════════════════════════════════════ */
+function showResp(btn, status, text, ms) {
+    const panel = btn.parentElement.querySelector('.resp-panel');
+    panel.classList.add('show');
+    panel.innerHTML = '';
+
+    const meta = document.createElement('div');
+    meta.className = 'resp-meta';
+
+    const badge = document.createElement('span');
+    badge.className = 'resp-status ' + (status >= 200 && status < 300 ? 'ok' : status === 0 ? 'err' : 'err');
+    badge.textContent = status === 0 ? 'Network Error' : `${status}`;
+    meta.appendChild(badge);
+
+    const time = document.createElement('span');
+    time.className = 'resp-time';
+    time.textContent = `${ms}ms`;
+    meta.appendChild(time);
+
+    const copy = document.createElement('button');
+    copy.className = 'resp-copy';
+    copy.textContent = '📋 Copy';
+    copy.onclick = () => { navigator.clipboard.writeText(text); copy.textContent = '✅ Copied'; setTimeout(()=>copy.textContent='📋 Copy',1500); };
+    meta.appendChild(copy);
+
+    const pre = document.createElement('pre');
+    pre.className = 'resp-body';
+    pre.textContent = text;
+
+    panel.appendChild(meta);
+    panel.appendChild(pre);
+    panel.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+async function doFetch(method, path, body) {
+    const headers = { 'Content-Type': 'application/json' };
+    const tok = getToken();
+    if (tok) headers['Authorization'] = `Bearer ${tok}`;
+    const opts = { method, headers };
+    if (body !== undefined && !['GET','DELETE'].includes(method)) opts.body = JSON.stringify(body);
+    const t = Date.now();
+    try {
+        const res = await fetch(path, opts);
+        const ms  = Date.now() - t;
+        let text;
+        try { text = JSON.stringify(await res.json(), null, 2); } catch { text = await res.text(); }
+        return { status: res.status, text, ms };
+    } catch (e) {
+        return { status: 0, text: `Network error: ${e.message}`, ms: Date.now() - t };
+    }
+}
+
+function setLoading(btn, on) {
+    btn.disabled = on;
+    btn.innerHTML = on
+        ? '<i class="fas fa-spinner fa-spin"></i> Sending…'
+        : '<i class="fas fa-paper-plane"></i> Send';
+}
+
+/* ══════════════════════════════════════════════════════════
+   SEND HELPERS
+══════════════════════════════════════════════════════════ */
+
+// GET with query-string params (data-qs attributes)
+async function sendQuery(btn, method, basePath) {
+    const container = btn.closest('.ep-body');
+    const qs = {};
+    container.querySelectorAll('[data-qs]').forEach(el => {
+        if (el.value) qs[el.dataset.qs] = el.value;
+    });
+    const query = Object.keys(qs).length ? '?' + new URLSearchParams(qs).toString() : '';
+    setLoading(btn, true);
+    const r = await doFetch(method, basePath + query);
+    setLoading(btn, false);
+    showResp(btn, r.status, r.text, r.ms);
+}
+
+// POST/PATCH with form fields (data-field attributes) as body
+async function sendBuilt(btn, method, path, fields, extraBody={}, autoFillToken=false) {
+    const container = btn.closest('.ep-body');
+    const body = { ...extraBody };
+    fields.forEach(f => {
+        const el = container.querySelector(`[data-field="${f}"]`);
+        if (el && el.value) body[f] = el.value;
+    });
+    setLoading(btn, true);
+    const r = await doFetch(method, path, body);
+    setLoading(btn, false);
+    showResp(btn, r.status, r.text, r.ms);
+    // Auto-fill token from login response
+    if (autoFillToken && r.status === 200) {
+        try {
+            const parsed = JSON.parse(r.text);
+            if (parsed.accessToken) {
+                tokenInput.value = parsed.accessToken;
+                tokenInput.dispatchEvent(new Event('input'));
             }
-        }
+        } catch {}
+    }
+}
 
-        document.getElementById('refreshStats')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            fetchStats();
-        });
+// Simple no-body request (GET, POST with no inputs)
+async function sendRaw(btn, method, path) {
+    setLoading(btn, true);
+    const r = await doFetch(method, path, method === 'POST' ? {} : undefined);
+    setLoading(btn, false);
+    showResp(btn, r.status, r.text, r.ms);
+}
 
-        fetchStats();
+// Request with a path param (appended to base)
+async function sendWithPathParam(btn, method, basePath, fieldName) {
+    const container = btn.closest('.ep-body');
+    const el = container.querySelector(`[data-field="${fieldName}"]`);
+    const val = el ? el.value.trim() : '';
+    if (!val) { alert(`Please enter a value for ${fieldName}`); return; }
+    setLoading(btn, true);
+    const r = await doFetch(method, basePath + val);
+    setLoading(btn, false);
+    showResp(btn, r.status, r.text, r.ms);
+}
 
-        /* ── Interactive Tester ─────────────────────────────────── */
-        const PRESETS = [
-            { label: '🔍 Jobs',           method: 'GET',  path: '/api/jobs?page=1&limit=5' },
-            { label: '🎓 Scholarships',    method: 'GET',  path: '/api/scholarships?page=1&limit=5' },
-            { label: '❤️ Health',          method: 'GET',  path: '/health' },
-            { label: '🔐 Login',           method: 'POST', path: '/api/auth/login',
-              body: '{\n  "email": "user@example.com",\n  "password": "YourPassword"\n}' },
-            { label: '📝 Signup',          method: 'POST', path: '/api/auth/signup',
-              body: '{\n  "email": "new@example.com",\n  "username": "newuser",\n  "password": "Password123"\n}' },
-            { label: '👤 My Profile',      method: 'GET',  path: '/api/user/profile' },
-            { label: '📋 My Applications', method: 'GET',  path: '/api/user/applications' },
-            { label: '🔖 Saved Jobs',      method: 'GET',  path: '/api/user/saved' },
-            { label: '📊 My Stats',        method: 'GET',  path: '/api/user/stats' },
-            { label: '🔑 Reset Password',  method: 'POST', path: '/api/auth/reset-password',
-              body: '{\n  "oldPassword": "OldPass123",\n  "newPassword": "NewPass123",\n  "confirmNewPassword": "NewPass123"\n}' },
-        ];
+// Raw JSON textarea body
+async function sendRawBody(btn, method, path) {
+    const container = btn.closest('.ep-body');
+    const ta = container.querySelector('[data-raw]');
+    let body;
+    try { body = ta ? JSON.parse(ta.value) : {}; }
+    catch { alert('Invalid JSON in body — please fix it.'); return; }
+    setLoading(btn, true);
+    const r = await doFetch(method, path, body);
+    setLoading(btn, false);
+    showResp(btn, r.status, r.text, r.ms);
+}
 
-        function buildPresets() {
-            const container = document.getElementById('presets');
-            PRESETS.forEach(p => {
-                const btn = document.createElement('button');
-                btn.textContent = p.label;
-                btn.style.cssText = 'padding:0.4rem 0.85rem;border:1px solid #06b6d4;border-radius:20px;background:white;color:#06b6d4;cursor:pointer;font-size:0.8rem;font-weight:600;transition:all .2s;';
-                btn.onmouseenter = () => { btn.style.background='#06b6d4'; btn.style.color='white'; };
-                btn.onmouseleave = () => { btn.style.background='white';   btn.style.color='#06b6d4'; };
-                btn.onclick = () => {
-                    document.getElementById('tester-method').value = p.method;
-                    document.getElementById('tester-path').value   = p.path;
-                    document.getElementById('tester-body').value   = p.body || '';
-                };
-                container.appendChild(btn);
-            });
-        }
-        buildPresets();
+// PATCH /api/admin/jobs/:id or /api/admin/scholarships/:id
+async function sendAdminPatch(btn, resource, idField) {
+    const container = btn.closest('.ep-body');
+    const idEl = container.querySelector(`[data-field="${idField}"]`);
+    const ta   = container.querySelector('[data-raw]');
+    const id   = idEl ? idEl.value.trim() : '';
+    if (!id) { alert('Please enter an ID'); return; }
+    let body;
+    try { body = ta ? JSON.parse(ta.value) : {}; }
+    catch { alert('Invalid JSON in body'); return; }
+    setLoading(btn, true);
+    const r = await doFetch('PATCH', `/api/admin/${resource}/${id}`, body);
+    setLoading(btn, false);
+    showResp(btn, r.status, r.text, r.ms);
+}
 
-        function clearToken() {
-            document.getElementById('tester-token').value = '';
-            document.getElementById('token-hint').textContent = '';
-        }
+// PATCH /api/admin/users/:id/role
+async function sendAdminUserRole(btn) {
+    const container = btn.closest('.ep-body');
+    const userId = container.querySelector('[data-field="userId"]').value.trim();
+    const role   = container.querySelector('[data-field="role"]').value;
+    if (!userId) { alert('Please enter a User ID'); return; }
+    setLoading(btn, true);
+    const r = await doFetch('PATCH', `/api/admin/users/${userId}/role`, { role });
+    setLoading(btn, false);
+    showResp(btn, r.status, r.text, r.ms);
+}
 
-        document.getElementById('tester-token').addEventListener('input', function() {
-            const v = this.value.trim();
-            if (!v) { document.getElementById('token-hint').textContent = ''; return; }
-            try {
-                const parts = v.split('.');
-                if (parts.length === 3) {
-                    const payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
-                    const exp = payload.exp ? new Date(payload.exp * 1000).toLocaleString() : 'no expiry';
-                    document.getElementById('token-hint').textContent = `✅ Valid JWT — expires ${exp}`;
-                    document.getElementById('token-hint').style.color = '#10b981';
-                } else {
-                    throw new Error();
-                }
-            } catch {
-                document.getElementById('token-hint').textContent = '⚠️ Does not look like a JWT — double-check your token.';
-                document.getElementById('token-hint').style.color = '#f59e0b';
-            }
-        });
+// POST /api/auth/reset-password/:token
+async function sendResetPassword(btn) {
+    const container = btn.closest('.ep-body');
+    const token    = container.querySelector('[data-field="__path_token"]').value.trim();
+    const password = container.querySelector('[data-field="newPassword"]').value;
+    if (!token) { alert('Please enter the reset token'); return; }
+    setLoading(btn, true);
+    const r = await doFetch('POST', `/api/auth/reset-password/${token}`, { newPassword: password });
+    setLoading(btn, false);
+    showResp(btn, r.status, r.text, r.ms);
+}
 
-        async function runRequest() {
-            const method  = document.getElementById('tester-method').value;
-            const path    = document.getElementById('tester-path').value.trim();
-            const bodyRaw = document.getElementById('tester-body').value.trim();
-            const token   = document.getElementById('tester-token').value.trim();
-
-            if (!path) { alert('Please enter a path.'); return; }
-
-            const btn = document.getElementById('run-btn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
-
-            const headers = { 'Content-Type': 'application/json' };
-            if (token) headers['Authorization'] = `Bearer ${token}`;
-
-            const opts = { method, headers };
-            if (!['GET','DELETE'].includes(method) && bodyRaw) {
-                try { JSON.parse(bodyRaw); } catch {
-                    alert('Request body is not valid JSON. Please fix it before sending.');
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Request';
-                    return;
-                }
-                opts.body = bodyRaw;
-            }
-
-            const start = Date.now();
-            try {
-                const res  = await fetch(path, opts);
-                const ms   = Date.now() - start;
-                let text;
-                const ct = res.headers.get('content-type') || '';
-                if (ct.includes('application/json')) {
-                    const json = await res.json();
-                    text = JSON.stringify(json, null, 2);
-                } else {
-                    text = await res.text();
-                }
-
-                showResponse(res.status, text, ms);
-            } catch (err) {
-                showResponse(0, `Network error: ${err.message}\n\nMake sure the API server is running.`, Date.now() - start);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Request';
-            }
-        }
-
-        function showResponse(status, body, ms) {
-            const panel = document.getElementById('response-panel');
-            const statusEl = document.getElementById('resp-status');
-            const timeEl   = document.getElementById('resp-time');
-            const bodyEl   = document.getElementById('resp-body');
-
-            panel.style.display = 'block';
-            timeEl.textContent  = `${ms}ms`;
-
-            if (status === 0) {
-                statusEl.textContent = 'ERROR';
-                statusEl.style.cssText = 'padding:.25rem .75rem;border-radius:20px;font-weight:700;font-size:.875rem;background:#fee2e2;color:#dc2626;';
-            } else if (status >= 200 && status < 300) {
-                statusEl.textContent = `${status} OK`;
-                statusEl.style.cssText = 'padding:.25rem .75rem;border-radius:20px;font-weight:700;font-size:.875rem;background:#d1fae5;color:#059669;';
-            } else if (status >= 400) {
-                statusEl.textContent = `${status} ${status >= 500 ? 'Server Error' : 'Client Error'}`;
-                statusEl.style.cssText = 'padding:.25rem .75rem;border-radius:20px;font-weight:700;font-size:.875rem;background:#fee2e2;color:#dc2626;';
-            } else {
-                statusEl.textContent = status;
-                statusEl.style.cssText = 'padding:.25rem .75rem;border-radius:20px;font-weight:700;font-size:.875rem;background:#fef3c7;color:#d97706;';
-            }
-
-            bodyEl.textContent = body;
-            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        function copyResponse() {
-            const text = document.getElementById('resp-body').textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                const btn = event.currentTarget;
-                const orig = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                btn.style.background = '#d1fae5';
-                setTimeout(() => { btn.innerHTML = orig; btn.style.background = '#f1f5f9'; }, 1500);
-            });
-        }
-
-        /* ── Health check (silent, console only) ─────────────────── */
-        fetch('/health').then(r => r.json()).then(d => console.log('Health:', d)).catch(() => {});
-    </script>
+/* ══════════════════════════════════════════════════════════
+   STATS
+══════════════════════════════════════════════════════════ */
+async function fetchStats() {
+    try {
+        const [jr, sr] = await Promise.all([
+            fetch('/api/jobs?page=1&limit=1'),
+            fetch('/api/scholarships?page=1&limit=1'),
+        ]);
+        const jd = await jr.json();
+        const sd = await sr.json();
+        document.getElementById('jobCount').textContent         = jd.total != null ? jd.total.toLocaleString() : 'N/A';
+        document.getElementById('scholarshipCount').textContent = sd.total != null ? sd.total.toLocaleString() : 'N/A';
+    } catch {
+        document.getElementById('jobCount').textContent = 'N/A';
+        document.getElementById('scholarshipCount').textContent = 'N/A';
+    }
+}
+document.getElementById('refreshStats').addEventListener('click', e => { e.preventDefault(); fetchStats(); });
+fetchStats();
+</script>
 </body>
 </html>

@@ -5,8 +5,8 @@ const adminService = require('./admin.service');
 // GET /api/admin/users
 async function getUsers(req, res, next) {
   try {
-    const data = await adminService.getUsers(req.query);
-    res.json(data);
+    const users = await adminService.getUsers(req.query);
+    res.json(users);
   } catch (err) {
     next(err);
   }
@@ -15,7 +15,11 @@ async function getUsers(req, res, next) {
 // PATCH /api/admin/users/:id/role
 async function updateUserRole(req, res, next) {
   try {
-    const user = await adminService.updateUserRole(req.params.id, req.body.role);
+    const { role } = req.body;
+    if (!role || !['user', 'admin'].includes(role)) {
+      return res.status(400).json({ error: 'role must be "user" or "admin"' });
+    }
+    const user = await adminService.updateUserRole(req.params.id, role);
     res.json(user);
   } catch (err) {
     next(err);
@@ -25,12 +29,17 @@ async function updateUserRole(req, res, next) {
 // DELETE /api/admin/users/:id
 async function deleteUser(req, res, next) {
   try {
+    // Prevent admin from deleting themselves
+    if (req.params.id === req.user.userId) {
+      return res.status(400).json({ error: 'You cannot delete your own account' });
+    }
     await adminService.deleteUser(req.params.id);
-    res.json({ message: 'User deleted' });
+    res.json({ message: 'User deleted successfully' });
   } catch (err) {
     next(err);
   }
 }
+
 // ── Jobs ──────────────────────────────────────────────────────────────────────
 
 // POST /api/admin/jobs
@@ -91,7 +100,6 @@ async function deleteJob(req, res, next) {
 // ── Scholarships ──────────────────────────────────────────────────────────────
 
 // POST /api/admin/scholarships
-
 async function createScholarships(req, res, next) {
   try {
     const payload = req.body;
@@ -137,7 +145,6 @@ async function updateScholarship(req, res, next) {
 }
 
 // DELETE /api/admin/scholarships/:id
-
 async function deleteScholarship(req, res, next) {
   try {
     await adminService.deleteScholarship(req.params.id);
@@ -148,9 +155,9 @@ async function deleteScholarship(req, res, next) {
 }
 
 module.exports = {
-  getUsers,         
-  updateUserRole,   
-  deleteUser,   
+  getUsers,
+  updateUserRole,
+  deleteUser,
   createJobs,
   getJobs,
   getJobById,
