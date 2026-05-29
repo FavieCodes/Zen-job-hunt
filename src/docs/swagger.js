@@ -175,6 +175,26 @@ const options = {
             rejected: { type: 'integer' },
           },
         },
+        InterviewPrep: {
+          type: 'object',
+          properties: {
+            id:             { type: 'string', format: 'uuid' },
+            user_id:        { type: 'string', format: 'uuid' },
+            job_role:       { type: 'string' },
+            interview_type: { type: 'string' },
+            questions:      { type: 'array', items: { type: 'object' } },
+            videos:         { type: 'array', items: { type: 'object' } },
+            created_at:     { type: 'string', format: 'date-time' },
+          },
+        },
+        InterviewPrepInput: {
+          type: 'object',
+          required: ['job_role', 'interview_type'],
+          properties: {
+            job_role:       { type: 'string', example: 'Frontend Developer' },
+            interview_type: { type: 'string', example: 'Technical' },
+          },
+        },
       },
     },
     tags: [
@@ -185,6 +205,7 @@ const options = {
       { name: 'Admin/Jobs',             description: 'Admin — job management (requires admin token)' },
       { name: 'Admin/Scholarships',     description: 'Admin — scholarship management (requires admin token)' },
       { name: 'Scraper',                description: 'Scraper control (requires auth)' },
+      { name: 'Interview',              description: 'AI Interview preparation generation and history' },
       { name: 'Health',                 description: 'Health and status checks' },
     ],
   },
@@ -195,6 +216,7 @@ const options = {
     path.join(__dirname, '../scholarships/scholarships.routes.js'),
     path.join(__dirname, '../admin/admin.routes.js'),
     path.join(__dirname, '../scraper/scraper.routes.js'),
+    path.join(__dirname, '../interview/interview.routes.js'),
     path.join(__dirname, '../common/health.controller.js'),
   ],
 };

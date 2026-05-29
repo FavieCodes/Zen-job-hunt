@@ -13,6 +13,7 @@ const scholarshipsRoutes = require('./scholarships/scholarships.routes');
 const scraperRoutes      = require('./scraper/scraper.routes');
 const adminRoutes        = require('./admin/admin.routes');
 const userRoutes         = require('./user/user.routes');
+const interviewRoutes    = require('./interview/interview.routes');
 const errorHandler       = require('./common/errorHandler');
 
 const app = express();
@@ -69,6 +70,7 @@ app.use(
   swaggerUi.setup(swaggerSpec, {
     swaggerOptions: { persistAuthorization: true },
     customCss: '.swagger-ui .topbar { display: none }',
+    customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css',
   })
 );
 
@@ -82,6 +84,7 @@ app.use('/api/scholarships', scholarshipsRoutes);
 app.use('/api/scraper',      scraperRoutes);
 app.use('/api/admin',        adminRoutes);
 app.use('/api/user',         userRoutes);
+app.use('/api/interview',    interviewRoutes);
 
 // ── Global error handler ──────────────────────────────────────────────────────
 app.use(errorHandler);

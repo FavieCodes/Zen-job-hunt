@@ -82,3 +82,15 @@ CREATE INDEX IF NOT EXISTS idx_confirmations_user   ON confirmations(user_id);
 CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id);
 CREATE INDEX IF NOT EXISTS idx_blacklist_token      ON token_blacklist(token);
 CREATE INDEX IF NOT EXISTS idx_blacklist_expires    ON token_blacklist(expires_at);
+
+-- ── Interview Preparation ─────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS interview_prep (
+  id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        UUID        REFERENCES users(id) ON DELETE CASCADE,
+  job_role       TEXT        NOT NULL,
+  interview_type TEXT        NOT NULL,
+  questions      JSONB       NOT NULL,
+  videos         JSONB       NOT NULL,
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_interview_prep_user  ON interview_prep(user_id);
