@@ -120,6 +120,7 @@
             <a href="#jobs-section"><i class="fas fa-briefcase"></i> Jobs</a>
             <a href="#scholarships-section"><i class="fas fa-graduation-cap"></i> Scholarships</a>
             <a href="#admin-section"><i class="fas fa-shield-alt"></i> Admin</a>
+            <a href="#interview-section"><i class="fas fa-comments"></i> Interview</a>
             <a href="#scraper-section"><i class="fas fa-robot"></i> Scraper</a>
             <a href="/docs" target="_blank"><i class="fas fa-book"></i> Swagger</a>
         </div>
@@ -792,6 +793,51 @@
             <div class="ep-body">
                 <div class="field-row"><label>Scholarship ID (UUID) *</label><input type="text" placeholder="scholarship uuid" data-field="schId" /></div>
                 <button class="btn btn-send" onclick="sendWithPathParam(this,'DELETE','/api/admin/scholarships/','schId')">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         INTERVIEW
+    ════════════════════════════════════════════════════════════════ -->
+    <div class="ep-group" id="interview-section">
+        <div class="ep-group-title"><i class="fas fa-comments"></i> Interview (AI Prep)</div>
+
+        <!-- POST /api/interview/generate -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method post">POST</span>
+                <span class="ep-path">/api/interview/generate</span>
+                <span class="ep-desc">Generate AI interview prep (Groq, Gemini, Anthropic)</span>
+                <span class="ep-auth">🔒 Auth</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <div class="fields-grid">
+                    <div class="field-row"><label>Job Role *</label><input type="text" placeholder="Frontend Developer" data-field="job_role" /></div>
+                    <div class="field-row"><label>Interview Type *</label><input type="text" placeholder="Technical" data-field="interview_type" /></div>
+                </div>
+                <button class="btn btn-send" onclick="sendBuilt(this,'POST','/api/interview/generate',['job_role','interview_type'])">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+                <div class="resp-panel"></div>
+            </div>
+        </div>
+
+        <!-- GET /api/interview/history -->
+        <div class="ep-tester">
+            <div class="ep-header" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="ep-path">/api/interview/history</span>
+                <span class="ep-desc">Get your AI prep history</span>
+                <span class="ep-auth">🔒 Auth</span>
+                <i class="fas fa-chevron-down ep-chevron"></i>
+            </div>
+            <div class="ep-body">
+                <button class="btn btn-send" onclick="sendRaw(this,'GET','/api/interview/history')">
                     <i class="fas fa-paper-plane"></i> Send
                 </button>
                 <div class="resp-panel"></div>

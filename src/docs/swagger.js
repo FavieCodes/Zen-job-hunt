@@ -205,7 +205,7 @@ const options = {
       { name: 'Admin/Jobs',             description: 'Admin — job management (requires admin token)' },
       { name: 'Admin/Scholarships',     description: 'Admin — scholarship management (requires admin token)' },
       { name: 'Scraper',                description: 'Scraper control (requires auth)' },
-      { name: 'Interview',              description: 'AI Interview preparation generation and history' },
+      { name: 'Interview',              description: 'AI Interview preparation generation and history (Groq, Gemini, Anthropic)' },
       { name: 'Health',                 description: 'Health and status checks' },
     ],
   },
