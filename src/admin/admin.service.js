@@ -104,24 +104,42 @@ async function getJobs({ page = 1, limit = 20, country, job_type, is_active, sea
   const params = [];
   const conditions = [];
 
-  if (country)   { params.push(`%${country}%`);   conditions.push(`country ILIKE $${params.length}`); }
-  if (job_type)  { params.push(job_type);          conditions.push(`job_type = $${params.length}`); }
+  if (country)   { params.push(`%${country}%`);   conditions.push(`j.country ILIKE $${params.length}`); }
+  if (job_type)  { params.push(job_type);          conditions.push(`j.job_type = $${params.length}`); }
   if (is_active !== undefined) {
     params.push(is_active === 'true' || is_active === true);
-    conditions.push(`is_active = $${params.length}`);
+    conditions.push(`j.is_active = $${params.length}`);
   }
   if (search) {
     params.push(`%${search}%`);
-    conditions.push(`(title ILIKE $${params.length} OR company ILIKE $${params.length} OR description ILIKE $${params.length})`);
+    conditions.push(`(j.title ILIKE $${params.length} OR j.company ILIKE $${params.length} OR j.description ILIKE $${params.length})`);
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-  const countRes = await db.query(`SELECT COUNT(*) FROM jobs ${where}`, params);
+  const countRes = await db.query(`SELECT COUNT(*) FROM jobs j ${where}`, params);
   const total = parseInt(countRes.rows[0].count, 10);
 
   params.push(Math.min(100, limit), offset);
+
+  // Join with job_applications and saved_jobs to get engagement counts
   const dataRes = await db.query(
-    `SELECT * FROM jobs ${where} ORDER BY scraped_at DESC
+    `SELECT
+       j.*,
+       COALESCE(app_counts.applicant_count, 0)::int AS applicant_count,
+       COALESCE(save_counts.saved_count, 0)::int AS saved_count
+     FROM jobs j
+     LEFT JOIN (
+       SELECT job_id, COUNT(*) AS applicant_count
+       FROM job_applications
+       GROUP BY job_id
+     ) app_counts ON app_counts.job_id = j.id
+     LEFT JOIN (
+       SELECT job_id, COUNT(*) AS saved_count
+       FROM saved_jobs
+       GROUP BY job_id
+     ) save_counts ON save_counts.job_id = j.id
+     ${where}
+     ORDER BY j.scraped_at DESC
      LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params
   );
@@ -187,24 +205,30 @@ async function getScholarships({ page=1, limit=20, country, field, is_active, se
   const params = [];
   const conditions = [];
 
-  if (country)   { params.push(`%${country}%`); conditions.push(`country ILIKE $${params.length}`); }
-  if (field)     { params.push(`%${field}%`);   conditions.push(`field ILIKE $${params.length}`); }
+  if (country)   { params.push(`%${country}%`); conditions.push(`s.country ILIKE $${params.length}`); }
+  if (field)     { params.push(`%${field}%`);   conditions.push(`s.field ILIKE $${params.length}`); }
   if (is_active !== undefined) {
     params.push(is_active === 'true' || is_active === true);
-    conditions.push(`is_active = $${params.length}`);
+    conditions.push(`s.is_active = $${params.length}`);
   }
   if (search) {
     params.push(`%${search}%`);
-    conditions.push(`(title ILIKE $${params.length} OR provider ILIKE $${params.length} OR description ILIKE $${params.length})`);
+    conditions.push(`(s.title ILIKE $${params.length} OR s.provider ILIKE $${params.length} OR s.description ILIKE $${params.length})`);
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-  const countRes = await db.query(`SELECT COUNT(*) FROM scholarships ${where}`, params);
+  const countRes = await db.query(`SELECT COUNT(*) FROM scholarships s ${where}`, params);
   const total = parseInt(countRes.rows[0].count, 10);
 
   params.push(Math.min(100, limit), offset);
   const dataRes = await db.query(
-    `SELECT * FROM scholarships ${where} ORDER BY scraped_at DESC
+    `SELECT
+       s.*,
+       COALESCE(0, 0)::int AS applicant_count,
+       COALESCE(0, 0)::int AS saved_count
+     FROM scholarships s
+     ${where}
+     ORDER BY s.scraped_at DESC
      LIMIT $${params.length - 1} OFFSET $${params.length}`,
     params
   );

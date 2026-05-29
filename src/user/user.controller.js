@@ -1,10 +1,8 @@
 const userService = require('./user.service');
 const logger = require('../common/logger');
 
-/**
- * Get current user profile
- * GET /api/user/profile
- */
+// Get current user profile
+
 async function getProfile(req, res, next) {
   try {
     const user = await userService.getUserProfile(req.user.userId);
@@ -14,10 +12,8 @@ async function getProfile(req, res, next) {
   }
 }
 
-/**
- * Update user profile
- * PATCH /api/user/profile
- */
+// Update user profile
+ 
 async function updateProfile(req, res, next) {
   try {
     const { username, avatar } = req.body;
@@ -28,10 +24,8 @@ async function updateProfile(req, res, next) {
   }
 }
 
-/**
- * Get user's job applications
- * GET /api/user/applications
- */
+// Get user's job applications
+
 async function getApplications(req, res, next) {
   try {
     const applications = await userService.getUserApplications(req.user.userId);
@@ -41,10 +35,8 @@ async function getApplications(req, res, next) {
   }
 }
 
-/**
- * Apply for a job
- * POST /api/user/applications
- */
+// POST /api/user/applications
+
 async function applyForJob(req, res, next) {
   try {
     const { job_id } = req.body;
@@ -58,10 +50,8 @@ async function applyForJob(req, res, next) {
   }
 }
 
-/**
- * Get saved jobs
- * GET /api/user/saved
- */
+// Get saved jobs
+
 async function getSavedJobs(req, res, next) {
   try {
     const savedJobs = await userService.getSavedJobs(req.user.userId);
@@ -71,10 +61,8 @@ async function getSavedJobs(req, res, next) {
   }
 }
 
-/**
- * Save a job
- * POST /api/user/saved
- */
+// Save a job
+
 async function saveJob(req, res, next) {
   try {
     const { job_id } = req.body;
@@ -88,10 +76,8 @@ async function saveJob(req, res, next) {
   }
 }
 
-/**
- * Remove a saved job
- * DELETE /api/user/saved/:jobId
- */
+// Remove a saved job
+
 async function removeSavedJob(req, res, next) {
   try {
     const { jobId } = req.params;
@@ -102,10 +88,8 @@ async function removeSavedJob(req, res, next) {
   }
 }
 
-/**
- * Get application statistics
- * GET /api/user/stats
- */
+// Get application statistics
+
 async function getStats(req, res, next) {
   try {
     const stats = await userService.getApplicationStats(req.user.userId);
