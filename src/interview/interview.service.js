@@ -25,7 +25,6 @@ Respond with ONLY valid JSON — no markdown fences, no preamble:
 
 function parseJsonSafe(text) {
   if (!text) throw new Error('Empty response from AI');
-  // Strip markdown fences if present
   let clean = text.trim();
   clean = clean.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
   // Find the outermost JSON object
@@ -45,7 +44,6 @@ async function callGroq(prompt) {
   if (!Groq) throw new Error('groq-sdk not installed');
 
   const groq = new Groq({ apiKey });
-  // Try two models — llama3 is more reliable for JSON; mixtral as fallback
   const models = ['llama3-8b-8192', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
   let lastErr;
   for (const model of models) {
@@ -77,7 +75,6 @@ async function callGemini(prompt) {
   if (!GoogleGenerativeAI) throw new Error('@google/generative-ai not installed');
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  // Try flash first, pro as fallback
   const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
   let lastErr;
   for (const modelName of models) {
@@ -116,7 +113,6 @@ async function generateInterviewPrep(userId, jobRole, interviewType) {
   let parsedData = null;
   const errors   = [];
 
-  // Cascade: Groq → Gemini → Anthropic
   const providers = [
     { name: 'Groq',      fn: callGroq },
     { name: 'Gemini',    fn: callGemini },
@@ -145,11 +141,10 @@ async function generateInterviewPrep(userId, jobRole, interviewType) {
     );
   }
 
-  // Ensure arrays exist
+
   if (!Array.isArray(parsedData.questions)) parsedData.questions = [];
   if (!Array.isArray(parsedData.videos))    parsedData.videos    = [];
 
-  // Persist to DB
   try {
     const { rows } = await pool.query(
       `INSERT INTO interview_prep (user_id, job_role, interview_type, questions, videos)
@@ -161,7 +156,7 @@ async function generateInterviewPrep(userId, jobRole, interviewType) {
     return rows[0];
   } catch (dbErr) {
     logger.error('[Interview] DB save error: ' + dbErr.message);
-    // Return the data even if DB save failed — don't lose the AI result
+
     return {
       id:             null,
       user_id:        userId,

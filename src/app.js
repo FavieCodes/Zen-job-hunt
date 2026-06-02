@@ -14,6 +14,7 @@ const scraperRoutes      = require('./scraper/scraper.routes');
 const adminRoutes        = require('./admin/admin.routes');
 const userRoutes         = require('./user/user.routes');
 const interviewRoutes    = require('./interview/interview.routes');
+const resumeRoutes       = require('./resume/resume.routes');   // ← NEW
 const errorHandler       = require('./common/errorHandler');
 
 const app = express();
@@ -85,6 +86,7 @@ app.use('/api/scraper',      scraperRoutes);
 app.use('/api/admin',        adminRoutes);
 app.use('/api/user',         userRoutes);
 app.use('/api/interview',    interviewRoutes);
+app.use('/api/resume',       resumeRoutes);      // ← NEW
 
 // ── Global error handler ──────────────────────────────────────────────────────
 app.use(errorHandler);

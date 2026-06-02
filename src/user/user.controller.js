@@ -2,7 +2,6 @@ const userService = require('./user.service');
 const logger = require('../common/logger');
 
 // Get current user profile
-
 async function getProfile(req, res, next) {
   try {
     const user = await userService.getUserProfile(req.user.userId);
@@ -13,7 +12,6 @@ async function getProfile(req, res, next) {
 }
 
 // Update user profile
- 
 async function updateProfile(req, res, next) {
   try {
     const { username, avatar } = req.body;
@@ -25,7 +23,6 @@ async function updateProfile(req, res, next) {
 }
 
 // Get user's job applications
-
 async function getApplications(req, res, next) {
   try {
     const applications = await userService.getUserApplications(req.user.userId);
@@ -36,13 +33,10 @@ async function getApplications(req, res, next) {
 }
 
 // POST /api/user/applications
-
 async function applyForJob(req, res, next) {
   try {
     const { job_id } = req.body;
-    if (!job_id) {
-      return res.status(400).json({ error: 'job_id is required' });
-    }
+    if (!job_id) return res.status(400).json({ error: 'job_id is required' });
     const application = await userService.applyForJob(req.user.userId, job_id);
     res.status(201).json(application);
   } catch (err) {
@@ -50,7 +44,7 @@ async function applyForJob(req, res, next) {
   }
 }
 
-// Get saved jobs
+// ── Saved Jobs ────────────────────────────────────────────────────────────────
 
 async function getSavedJobs(req, res, next) {
   try {
@@ -61,22 +55,16 @@ async function getSavedJobs(req, res, next) {
   }
 }
 
-// Save a job
-
 async function saveJob(req, res, next) {
   try {
     const { job_id } = req.body;
-    if (!job_id) {
-      return res.status(400).json({ error: 'job_id is required' });
-    }
+    if (!job_id) return res.status(400).json({ error: 'job_id is required' });
     const result = await userService.saveJob(req.user.userId, job_id);
     res.status(201).json(result);
   } catch (err) {
     next(err);
   }
 }
-
-// Remove a saved job
 
 async function removeSavedJob(req, res, next) {
   try {
@@ -88,7 +76,50 @@ async function removeSavedJob(req, res, next) {
   }
 }
 
-// Get application statistics
+// ── Saved Scholarships ────────────────────────────────────────────────────────
+
+async function getSavedScholarships(req, res, next) {
+  try {
+    const items = await userService.getSavedScholarships(req.user.userId);
+    res.json(items);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function saveScholarship(req, res, next) {
+  try {
+    const { scholarship_id } = req.body;
+    if (!scholarship_id) return res.status(400).json({ error: 'scholarship_id is required' });
+    const result = await userService.saveScholarship(req.user.userId, scholarship_id);
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function removeSavedScholarship(req, res, next) {
+  try {
+    const { scholarshipId } = req.params;
+    const result = await userService.removeSavedScholarship(req.user.userId, scholarshipId);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── Combined saved (jobs + scholarships) ──────────────────────────────────────
+
+async function getAllSaved(req, res, next) {
+  try {
+    const items = await userService.getAllSavedItems(req.user.userId);
+    res.json(items);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
 
 async function getStats(req, res, next) {
   try {
@@ -107,5 +138,9 @@ module.exports = {
   getSavedJobs,
   saveJob,
   removeSavedJob,
+  getSavedScholarships,
+  saveScholarship,
+  removeSavedScholarship,
+  getAllSaved,
   getStats,
 };
