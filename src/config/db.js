@@ -22,8 +22,22 @@ if (!databaseUrl) {
 
 const isServerless = process.env.VERCEL === '1' || !!process.env.AWS_LAMBDA_RUNTIME_API;
 
+function buildConnectionString(url) {
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.delete('sslmode');
+    parsed.searchParams.set('sslmode', 'verify-full');
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+const connectionString = buildConnectionString(databaseUrl);
+
 const pool = new Pool({
-  connectionString: databaseUrl,
+  connectionString,
+  ssl: { rejectUnauthorized: true }, 
   max:                      isServerless ? 1  : 10,
   idleTimeoutMillis:        isServerless ? 10_000 : 30_000,
   connectionTimeoutMillis:  isServerless ? 3_000  : 5_000,
@@ -32,8 +46,7 @@ const pool = new Pool({
 
 pool.on('error', (err) => logger.error('[db] Unexpected pool error: ' + err.message));
 
-// Safe startup migrations.
- 
+
 async function runMigrations(client) {
   const steps = [
     // ── Users: add missing columns ──────────────────────────────────────────

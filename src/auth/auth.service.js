@@ -138,7 +138,6 @@ async function loginWithGoogle(token) {
 
     const passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
 
-    // Ensure the is_google_user column exists (safe migration on first Google login)
     await db.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS is_google_user BOOLEAN DEFAULT FALSE
     `).catch(() => {});
@@ -151,7 +150,6 @@ async function loginWithGoogle(token) {
     );
     user = res.rows[0];
   } else if (!user.is_google_user) {
-    // Existing user logging in via Google for the first time — mark them
     await db.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS is_google_user BOOLEAN DEFAULT FALSE
     `).catch(() => {});
