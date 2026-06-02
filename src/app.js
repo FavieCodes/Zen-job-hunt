@@ -23,7 +23,6 @@ const cors = require('cors');
 // ── CORS ──────────────────────────────────────────────────────────────────────
 app.use(cors());
 
-// ── Helmet with relaxed CSP so Swagger UI (CDN assets) loads correctly ────────
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -40,9 +39,8 @@ app.use(
   })
 );
 
-// ── Body parsing — 10 mb to accommodate base64 avatar uploads ─────────────────
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 // ── HTTP request logging ──────────────────────────────────────────────────────
 app.use(morgan('combined', { stream: logger.stream }));
@@ -53,8 +51,11 @@ const limiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  validate: { trustProxy: false },
-  keyGenerator: (req) => req.headers['x-forwarded-for'] || req.ip,
+  validate: { trustProxy: false, keyGeneratorIpFallback: false },
+  keyGenerator: (req) => {
+    const forwarded = req.headers['x-forwarded-for'];
+    return forwarded ? forwarded.split(',')[0].trim() : req.ip ?? '127.0.0.1';
+  },
 });
 app.use(limiter);
 
@@ -86,7 +87,7 @@ app.use('/api/scraper',      scraperRoutes);
 app.use('/api/admin',        adminRoutes);
 app.use('/api/user',         userRoutes);
 app.use('/api/interview',    interviewRoutes);
-app.use('/api/resume',       resumeRoutes);      // ← NEW
+app.use('/api/resume',       resumeRoutes);      
 
 // ── Global error handler ──────────────────────────────────────────────────────
 app.use(errorHandler);
