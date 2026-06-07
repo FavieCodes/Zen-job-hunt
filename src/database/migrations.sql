@@ -128,6 +128,16 @@ CREATE TABLE IF NOT EXISTS resumes (
   updated_at     TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- ── Portfolio ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS portfolios (
+  id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        UUID        REFERENCES users(id) ON DELETE CASCADE,
+  full_name      TEXT        NOT NULL DEFAULT '',
+  title          TEXT        NOT NULL DEFAULT '',
+  generated_html TEXT        NOT NULL DEFAULT '',
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ═══════════════════════════════════════════════════════════════════════════
 --  Indexes
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -152,3 +162,4 @@ CREATE INDEX IF NOT EXISTS idx_saved_jobs_user          ON saved_jobs(user_id);
 CREATE INDEX IF NOT EXISTS idx_saved_jobs_job           ON saved_jobs(job_id);
 CREATE INDEX IF NOT EXISTS idx_interview_prep_user      ON interview_prep(user_id);
 CREATE INDEX IF NOT EXISTS idx_resumes_user             ON resumes(user_id);
+CREATE INDEX IF NOT EXISTS idx_portfolios_user          ON portfolios(user_id);

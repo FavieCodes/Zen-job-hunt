@@ -27,7 +27,6 @@ function parseJsonSafe(text) {
   if (!text) throw new Error('Empty response from AI');
   let clean = text.trim();
   clean = clean.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
-  // Find the outermost JSON object
   const start = clean.indexOf('{');
   const end   = clean.lastIndexOf('}');
   if (start === -1 || end === -1) throw new Error('No JSON object found in response');
@@ -106,7 +105,23 @@ async function callAnthropic(prompt) {
   return parseJsonSafe(response.content[0]?.text?.trim() || '');
 }
 
-// ── Main service function ─────────────────────────────────────────────────────
+// ── Daily limit check ─────────────────────────────────────────────────────────
+
+async function checkDailyLimit(userId) {
+  try {
+    const { rows } = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM interview_prep
+       WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '24 hours'`,
+      [userId]
+    );
+    return parseInt(rows[0].cnt, 10) < 1;
+  } catch (err) {
+    logger.warn('[Interview] Daily limit check failed, allowing request: ' + err.message);
+    return true; 
+  }
+}
+
+// ── Main service functions ────────────────────────────────────────────────────
 
 async function generateInterviewPrep(userId, jobRole, interviewType) {
   const prompt = buildPrompt(jobRole, interviewType);
@@ -136,11 +151,9 @@ async function generateInterviewPrep(userId, jobRole, interviewType) {
     logger.error('[Interview] All providers failed:\n' + errors.join('\n'));
     throw new Error(
       'Could not generate interview prep — all AI providers failed. ' +
-      'Please check your GROQ_API_KEY / GEMINI_API_KEY / ANTHROPIC_API_KEY environment variables ' +
-      'in Vercel → Settings → Environment Variables, then redeploy.'
+      'Please check your GROQ_API_KEY / GEMINI_API_KEY / ANTHROPIC_API_KEY environment variables.'
     );
   }
-
 
   if (!Array.isArray(parsedData.questions)) parsedData.questions = [];
   if (!Array.isArray(parsedData.videos))    parsedData.videos    = [];
@@ -156,7 +169,6 @@ async function generateInterviewPrep(userId, jobRole, interviewType) {
     return rows[0];
   } catch (dbErr) {
     logger.error('[Interview] DB save error: ' + dbErr.message);
-
     return {
       id:             null,
       user_id:        userId,
@@ -183,4 +195,19 @@ async function getUserHistory(userId) {
   }
 }
 
-module.exports = { generateInterviewPrep, getUserHistory };
+// Get a single prep record by ID, 
+async function getPrepById(userId, id) {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, user_id, job_role, interview_type, questions, videos, created_at
+         FROM interview_prep WHERE id = $1 AND user_id = $2`,
+      [id, userId]
+    );
+    return rows[0] || null;
+  } catch (err) {
+    if (err.code === '42P01') return null;
+    throw err;
+  }
+}
+
+module.exports = { generateInterviewPrep, getUserHistory, getPrepById, checkDailyLimit };
