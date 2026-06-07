@@ -117,7 +117,7 @@ async function checkDailyLimit(userId) {
     return parseInt(rows[0].cnt, 10) < 1;
   } catch (err) {
     logger.warn('[Interview] Daily limit check failed, allowing request: ' + err.message);
-    return true; 
+    return true; // fail open so a DB hiccup doesn't block everyone
   }
 }
 
@@ -195,7 +195,7 @@ async function getUserHistory(userId) {
   }
 }
 
-// Get a single prep record by ID, 
+// Get a single prep record by ID, scoped to the requesting user  ← FIX #1
 async function getPrepById(userId, id) {
   try {
     const { rows } = await pool.query(
@@ -210,4 +210,75 @@ async function getPrepById(userId, id) {
   }
 }
 
-module.exports = { generateInterviewPrep, getUserHistory, getPrepById, checkDailyLimit };
+async function generateSingleAnswer({ question, tip, job_role, interview_type }) {
+  const prompt = `You are an expert interview coach. A candidate is interviewing for a "${job_role || 'professional'}" role (${interview_type || 'General'} interview).
+
+Question: "${question}"
+Coaching tip: "${tip}"
+
+Write a strong, concise sample answer (150-250 words) that:
+1. Directly addresses the question
+2. Uses the STAR method where applicable (Situation, Task, Action, Result)
+3. Sounds natural and confident, not robotic
+4. Incorporates the coaching tip
+
+Respond with ONLY the answer text — no preamble, no labels, no markdown.`;
+
+  const providers = [
+    { name: 'Groq',      fn: callGroq },
+    { name: 'Gemini',    fn: callGemini },
+    { name: 'Anthropic', fn: callAnthropic },
+  ];
+
+  // For this endpoint we need plain text, not JSON - wrap providers accordingly
+  for (const { name, fn } of providers) {
+    try {
+      // We'll reuse existing providers but they return JSON - override for plain text
+      const apiKey = name === 'Groq' ? process.env.GROQ_API_KEY
+                   : name === 'Gemini' ? process.env.GEMINI_API_KEY
+                   : process.env.ANTHROPIC_API_KEY;
+      if (!apiKey) continue;
+
+      let answer = null;
+
+      if (name === 'Groq') {
+        const { default: Groq } = await import('groq-sdk').catch(() => ({ default: null }));
+        if (!Groq) continue;
+        const groq = new Groq({ apiKey });
+        const completion = await groq.chat.completions.create({
+          messages: [{ role: 'user', content: prompt }],
+          model: 'llama3-8b-8192',
+          temperature: 0.7,
+          max_tokens: 600,
+        });
+        answer = completion.choices[0]?.message?.content?.trim();
+      } else if (name === 'Gemini') {
+        const { GoogleGenerativeAI } = await import('@google/generative-ai').catch(() => ({ GoogleGenerativeAI: null }));
+        if (!GoogleGenerativeAI) continue;
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const result = await model.generateContent(prompt);
+        answer = result.response.text()?.trim();
+      } else if (name === 'Anthropic') {
+        const Anthropic = require('@anthropic-ai/sdk');
+        const client = new Anthropic({ apiKey });
+        const response = await client.messages.create({
+          model: 'claude-haiku-4-5',
+          max_tokens: 600,
+          messages: [{ role: 'user', content: prompt }],
+        });
+        answer = response.content[0]?.text?.trim();
+      }
+
+      if (answer) {
+        logger.info('[Interview] generateSingleAnswer succeeded via ' + name);
+        return answer;
+      }
+    } catch (err) {
+      logger.warn('[Interview] generateSingleAnswer ' + name + ' failed: ' + err.message);
+    }
+  }
+  throw new Error('All providers failed for answer generation');
+}
+
+module.exports = { generateInterviewPrep, getUserHistory, getPrepById, checkDailyLimit, generateSingleAnswer };

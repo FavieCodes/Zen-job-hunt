@@ -39,7 +39,7 @@ async function getHistory(req, res, next) {
   }
 }
 
-// Get single prep by ID 
+// Get single prep by ID  ← FIX #1
 async function getById(req, res, next) {
   try {
     const userId = req.user.userId;
@@ -55,4 +55,18 @@ async function getById(req, res, next) {
   }
 }
 
-module.exports = { generatePrep, getHistory, getById };
+// Generate AI answer for a single question
+async function generateAnswer(req, res, next) {
+  try {
+    const { question, tip, job_role, interview_type } = req.body;
+    if (!question) return res.status(400).json({ error: 'question is required' });
+
+    const answer = await interviewService.generateSingleAnswer({ question, tip, job_role, interview_type });
+    res.status(200).json({ answer });
+  } catch (err) {
+    logger.error(`[InterviewController] generateAnswer error: ${err.message}`);
+    next(err);
+  }
+}
+
+module.exports = { generatePrep, getHistory, getById, generateAnswer };
