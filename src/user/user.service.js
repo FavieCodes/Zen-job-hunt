@@ -71,7 +71,6 @@ async function ensureApplicationsTable() {
     )
   `);
 
-  // Add columns that may be missing in older tables (safe to run repeatedly)
   const alterColumns = [
     `ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS scholarship_id UUID`,
     `ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS application_type TEXT NOT NULL DEFAULT 'job'`,
@@ -133,7 +132,6 @@ async function getUserApplications(userId) {
       [userId]
     );
 
-    // Normalise into a flat shape the frontend can consume easily
     return result.rows.map((r) => ({
       id:               r.id,
       job_id:           r.job_id,
@@ -142,7 +140,7 @@ async function getUserApplications(userId) {
       status:           r.status,
       created_at:       r.created_at,
       updated_at:       r.updated_at,
-      // resolved display fields
+   
       title:    r.manual_title   || r.job_title  || r.sch_title   || 'Unknown',
       company:  r.manual_company || r.job_company || r.sch_provider || '',
       location: r.manual_location|| r.job_city   || r.job_state   || r.job_country || r.sch_country || '',
@@ -243,6 +241,19 @@ async function updateApplicationStatus(userId, applicationId, status) {
     const err = new Error('Application not found'); err.status = 404; throw err;
   }
   return result.rows[0];
+}
+
+async function deleteApplication(userId, applicationId) {
+  await ensureApplicationsTable();
+  const result = await db.query(
+    'DELETE FROM job_applications WHERE id = $1 AND user_id = $2 RETURNING id',
+    [applicationId, userId]
+  );
+  if (result.rows.length === 0) {
+    const err = new Error('Application not found or already deleted'); err.status = 404; throw err;
+  }
+  logger.info(`User ${userId} deleted application ${applicationId}`);
+  return { message: 'Application deleted successfully', id: applicationId };
 }
 
 // ── Saved Jobs ────────────────────────────────────────────────────────────────
@@ -393,6 +404,7 @@ module.exports = {
   applyForScholarship,
   addManualApplication,
   updateApplicationStatus,
+  deleteApplication,
   getSavedJobs,
   saveJob,
   removeSavedJob,

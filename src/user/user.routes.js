@@ -11,6 +11,7 @@ router.get('/applications',                    requireAuth, userController.getAp
 router.post('/applications',                   requireAuth, userController.applyForJob);          // job_id or scholarship_id in body
 router.post('/applications/manual',            requireAuth, userController.addManualApplication); // manual entry
 router.patch('/applications/:id/status',       requireAuth, userController.updateApplicationStatus);
+router.delete('/applications/:id',             requireAuth, userController.deleteApplication);    // delete application
 
 // ── Saved Jobs ────────────────────────────────────────────────────────────────
 router.get('/saved/jobs',              requireAuth, userController.getSavedJobs);

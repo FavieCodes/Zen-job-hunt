@@ -62,6 +62,15 @@ async function updateApplicationStatus(req, res, next) {
   } catch (err) { next(err); }
 }
 
+// DELETE /api/user/applications/:id
+async function deleteApplication(req, res, next) {
+  try {
+    const { id } = req.params;
+    const result = await userService.deleteApplication(req.user.userId, id);
+    res.json(result);
+  } catch (err) { next(err); }
+}
+
 // ── Saved Jobs ────────────────────────────────────────────────────────────────
 
 async function getSavedJobs(req, res, next) {
@@ -139,6 +148,7 @@ module.exports = {
   applyForJob,
   addManualApplication,
   updateApplicationStatus,
+  deleteApplication,
   getSavedJobs,
   saveJob,
   removeSavedJob,
