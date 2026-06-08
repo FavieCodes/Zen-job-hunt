@@ -428,4 +428,19 @@ async function deleteResume(userId, resumeId) {
   return { message: 'Resume deleted' };
 }
 
-module.exports = { generateResume, tailorUploadedResume, getResumeHistory, deleteResume };
+async function getResumeById(userId, id) {
+  await ensureResumeTable();
+  try {
+    const { rows } = await db.query(
+      `SELECT id, title, resume_type, form_data, generated_html, created_at
+         FROM resume_history WHERE id = $1 AND user_id = $2`,
+      [id, userId]
+    );
+    return rows[0] || null;
+  } catch (err) {
+    if (err.code === '42P01') return null;
+    throw err;
+  }
+}
+
+module.exports = { generateResume, tailorUploadedResume, getResumeHistory, getResumeById, deleteResume };

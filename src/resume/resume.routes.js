@@ -5,6 +5,7 @@ const resumeController   = require('./resume.controller');
 router.post('/generate', requireAuth, resumeController.generateResume);
 router.post('/tailor',   requireAuth, resumeController.tailorResume);
 router.get('/history',   requireAuth, resumeController.getHistory);
+router.get('/:id',       requireAuth, resumeController.getById);
 router.delete('/:id',    requireAuth, resumeController.deleteResume);
 
 module.exports = router;

@@ -88,4 +88,14 @@ async function deleteResume(req, res, next) {
   }
 }
 
-module.exports = { generateResume, getHistory, tailorResume, deleteResume };
+async function getById(req, res, next) {
+  try {
+    const resume = await resumeService.getResumeById(req.user.userId, req.params.id);
+    if (!resume) return res.status(404).json({ error: 'Resume not found' });
+    res.json(resume);
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { generateResume, getHistory, tailorResume, deleteResume, getById };
