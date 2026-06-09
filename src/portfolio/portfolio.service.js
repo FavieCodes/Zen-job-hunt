@@ -112,7 +112,6 @@ async function callAnthropic(prompt) {
 function cleanHtml(text) {
   if (!text) throw new Error('Empty response from AI');
   let html = text.trim();
-  // Strip markdown fences if model wrapped it anyway
   html = html.replace(/^```html\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
   if (!html.toLowerCase().includes('<!doctype') && !html.toLowerCase().includes('<html')) {
     throw new Error('Response does not appear to be HTML');
@@ -225,6 +224,61 @@ async function deletePortfolio(userId, id) {
 
 
 
+// ── JSON provider helpers (used by parseCvText) ──────────────────────────────
+
+function parseJsonSafe(text) {
+  if (!text) throw new Error('Empty response');
+  let clean = text.trim()
+    .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+  const start = clean.indexOf('{');
+  const end   = clean.lastIndexOf('}');
+  if (start === -1 || end === -1) throw new Error('No JSON object in response');
+  return JSON.parse(clean.slice(start, end + 1));
+}
+
+async function callGroqJson(prompt) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY not configured');
+  const { default: Groq } = await import('groq-sdk').catch(() => ({ default: null }));
+  if (!Groq) throw new Error('groq-sdk not installed');
+  const groq = new Groq({ apiKey });
+  const completion = await groq.chat.completions.create({
+    messages: [
+      { role: 'system', content: 'You are a data extraction assistant. Output raw JSON only — no markdown, no extra text.' },
+      { role: 'user',   content: prompt },
+    ],
+    model: 'llama3-8b-8192',
+    temperature: 0.2,
+    max_tokens: 2000,
+  });
+  return parseJsonSafe(completion.choices[0]?.message?.content || '');
+}
+
+async function callGeminiJson(prompt) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+  const { GoogleGenerativeAI } = await import('@google/generative-ai').catch(() => ({ GoogleGenerativeAI: null }));
+  if (!GoogleGenerativeAI) throw new Error('@google/generative-ai not installed');
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const result = await model.generateContent(prompt);
+  return parseJsonSafe(result.response.text());
+}
+
+async function callAnthropicJson(prompt) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+  const Anthropic = require('@anthropic-ai/sdk');
+  const client = new Anthropic({ apiKey });
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 2000,
+    system: 'You are a data extraction assistant. Output raw JSON only — no markdown, no backticks, no explanation.',
+    messages: [{ role: 'user', content: prompt }],
+  });
+  return parseJsonSafe(response.content[0]?.text?.trim() || '');
+}
+
 async function parseCvText(cvText) {
   const prompt = `Extract structured information from this CV/resume text and return ONLY valid JSON (no markdown fences):
 {
@@ -248,22 +302,25 @@ CV TEXT:
 ${cvText.slice(0, 5000)}`;
 
   const providers = [
-    { name: 'Anthropic', fn: callAnthropic },
-    { name: 'Gemini',    fn: callGemini },
-    { name: 'Groq',      fn: callGroq },
+    { name: 'Anthropic', fn: callAnthropicJson },
+    { name: 'Gemini',    fn: callGeminiJson },
+    { name: 'Groq',      fn: callGroqJson },
   ];
 
+  const errors = [];
   for (const { name, fn } of providers) {
     try {
-      // Reuse providers but with a parse prompt — wrap them to return JSON
       const result = await fn(prompt);
-      // If the provider returns HTML-like (for generate), skip; we need JSON
-      if (typeof result === 'object') return result;
-      const parsed = JSON.parse(result);
-      return parsed;
-    } catch { /* try next */ }
+      logger.info('[Portfolio] parseCvText succeeded via ' + name);
+      return result;
+    } catch (err) {
+      const msg = err.message || String(err);
+      logger.warn('[Portfolio] parseCvText ' + name + ' failed: ' + msg);
+      errors.push(name + ': ' + msg);
+    }
   }
-  throw new Error('CV parsing failed');
+  logger.error('[Portfolio] All parseCvText providers failed:\n' + errors.join('\n'));
+  throw new Error('CV parsing failed — all providers failed');
 }
 
 module.exports = {

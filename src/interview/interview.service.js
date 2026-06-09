@@ -210,6 +210,53 @@ async function getPrepById(userId, id) {
   }
 }
 
+// ── Plain-text provider helpers (used by generateSingleAnswer) ───────────────
+
+async function callGroqText(prompt) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY not configured');
+  const { default: Groq } = await import('groq-sdk').catch(() => ({ default: null }));
+  if (!Groq) throw new Error('groq-sdk not installed');
+  const groq = new Groq({ apiKey });
+  const completion = await groq.chat.completions.create({
+    messages: [{ role: 'user', content: prompt }],
+    model: 'llama3-8b-8192',
+    temperature: 0.7,
+    max_tokens: 600,
+  });
+  const text = completion.choices[0]?.message?.content?.trim();
+  if (!text) throw new Error('Empty response from Groq');
+  return text;
+}
+
+async function callGeminiText(prompt) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+  const { GoogleGenerativeAI } = await import('@google/generative-ai').catch(() => ({ GoogleGenerativeAI: null }));
+  if (!GoogleGenerativeAI) throw new Error('@google/generative-ai not installed');
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const result = await model.generateContent(prompt);
+  const text = result.response.text()?.trim();
+  if (!text) throw new Error('Empty response from Gemini');
+  return text;
+}
+
+async function callAnthropicText(prompt) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+  const Anthropic = require('@anthropic-ai/sdk');
+  const client = new Anthropic({ apiKey });
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 600,
+    messages: [{ role: 'user', content: prompt }],
+  });
+  const text = response.content[0]?.text?.trim();
+  if (!text) throw new Error('Empty response from Anthropic');
+  return text;
+}
+
 async function generateSingleAnswer({ question, tip, job_role, interview_type }) {
   const prompt = `You are an expert interview coach. A candidate is interviewing for a "${job_role || 'professional'}" role (${interview_type || 'General'} interview).
 
@@ -225,55 +272,16 @@ Write a strong, concise sample answer (150-250 words) that:
 Respond with ONLY the answer text — no preamble, no labels, no markdown.`;
 
   const providers = [
-    { name: 'Groq',      fn: callGroq },
-    { name: 'Gemini',    fn: callGemini },
-    { name: 'Anthropic', fn: callAnthropic },
+    { name: 'Groq',      fn: callGroqText },
+    { name: 'Gemini',    fn: callGeminiText },
+    { name: 'Anthropic', fn: callAnthropicText },
   ];
 
-  // For this endpoint we need plain text, not JSON - wrap providers accordingly
   for (const { name, fn } of providers) {
     try {
-      // We'll reuse existing providers but they return JSON - override for plain text
-      const apiKey = name === 'Groq' ? process.env.GROQ_API_KEY
-                   : name === 'Gemini' ? process.env.GEMINI_API_KEY
-                   : process.env.ANTHROPIC_API_KEY;
-      if (!apiKey) continue;
-
-      let answer = null;
-
-      if (name === 'Groq') {
-        const { default: Groq } = await import('groq-sdk').catch(() => ({ default: null }));
-        if (!Groq) continue;
-        const groq = new Groq({ apiKey });
-        const completion = await groq.chat.completions.create({
-          messages: [{ role: 'user', content: prompt }],
-          model: 'llama3-8b-8192',
-          temperature: 0.7,
-          max_tokens: 600,
-        });
-        answer = completion.choices[0]?.message?.content?.trim();
-      } else if (name === 'Gemini') {
-        const { GoogleGenerativeAI } = await import('@google/generative-ai').catch(() => ({ GoogleGenerativeAI: null }));
-        if (!GoogleGenerativeAI) continue;
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-        const result = await model.generateContent(prompt);
-        answer = result.response.text()?.trim();
-      } else if (name === 'Anthropic') {
-        const Anthropic = require('@anthropic-ai/sdk');
-        const client = new Anthropic({ apiKey });
-        const response = await client.messages.create({
-          model: 'claude-haiku-4-5',
-          max_tokens: 600,
-          messages: [{ role: 'user', content: prompt }],
-        });
-        answer = response.content[0]?.text?.trim();
-      }
-
-      if (answer) {
-        logger.info('[Interview] generateSingleAnswer succeeded via ' + name);
-        return answer;
-      }
+      const answer = await fn(prompt);
+      logger.info('[Interview] generateSingleAnswer succeeded via ' + name);
+      return answer;
     } catch (err) {
       logger.warn('[Interview] generateSingleAnswer ' + name + ' failed: ' + err.message);
     }
