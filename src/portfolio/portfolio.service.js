@@ -37,61 +37,31 @@ DESIGN REQUIREMENTS:
 OUTPUT: Return ONLY the complete HTML file content. No markdown fences, no explanation — just the raw HTML starting with <!DOCTYPE html>.`;
 }
 
-// ── Provider wrappers ─────────────────────────────────────────────────────────
+// ── HTML cleaner ──────────────────────────────────────────────────────────────
 
-async function callGroq(prompt) {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error('GROQ_API_KEY not configured');
-
-  const { default: Groq } = await import('groq-sdk').catch(() => ({ default: null }));
-  if (!Groq) throw new Error('groq-sdk not installed');
-
-  const groq = new Groq({ apiKey });
-  const models = ['llama3-8b-8192', 'llama-3.1-8b-instant'];
-  let lastErr;
-  for (const model of models) {
-    try {
-      const completion = await groq.chat.completions.create({
-        messages: [
-          { role: 'system', content: 'You are an expert web developer. Output only raw HTML, nothing else.' },
-          { role: 'user',   content: prompt },
-        ],
-        model,
-        temperature: 0.4,
-        max_tokens:  8000,
-      });
-      const text = completion.choices[0]?.message?.content || '';
-      return cleanHtml(text);
-    } catch (err) {
-      logger.warn(`[Portfolio] Groq model ${model} failed: ${err.message}`);
-      lastErr = err;
-    }
+function cleanHtml(text) {
+  if (!text) throw new Error('Empty response from AI');
+  let html = text.trim();
+  html = html.replace(/^```html\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+  if (!html.toLowerCase().includes('<!doctype') && !html.toLowerCase().includes('<html')) {
+    throw new Error('Response does not appear to be HTML');
   }
-  throw lastErr || new Error('All Groq models failed');
+  return html;
 }
 
-async function callGemini(prompt) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+// ── JSON cleaner (for CV parsing) ─────────────────────────────────────────────
 
-  const { GoogleGenerativeAI } = await import('@google/generative-ai').catch(() => ({ GoogleGenerativeAI: null }));
-  if (!GoogleGenerativeAI) throw new Error('@google/generative-ai not installed');
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const models = ['gemini-1.5-flash', 'gemini-1.5-pro'];
-  let lastErr;
-  for (const modelName of models) {
-    try {
-      const model  = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent(prompt);
-      return cleanHtml(result.response.text());
-    } catch (err) {
-      logger.warn(`[Portfolio] Gemini model ${modelName} failed: ${err.message}`);
-      lastErr = err;
-    }
-  }
-  throw lastErr || new Error('All Gemini models failed');
+function parseJsonSafe(text) {
+  if (!text) throw new Error('Empty response');
+  let clean = text.trim()
+    .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+  const start = clean.indexOf('{');
+  const end   = clean.lastIndexOf('}');
+  if (start === -1 || end === -1) throw new Error('No JSON object in response');
+  return JSON.parse(clean.slice(start, end + 1));
 }
+
+// ── HTML provider wrappers (portfolio generation) ─────────────────────────────
 
 async function callAnthropic(prompt) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -109,14 +79,109 @@ async function callAnthropic(prompt) {
   return cleanHtml(response.content[0]?.text?.trim() || '');
 }
 
-function cleanHtml(text) {
-  if (!text) throw new Error('Empty response from AI');
-  let html = text.trim();
-  html = html.replace(/^```html\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
-  if (!html.toLowerCase().includes('<!doctype') && !html.toLowerCase().includes('<html')) {
-    throw new Error('Response does not appear to be HTML');
+async function callGemini(prompt) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+
+  const { GoogleGenerativeAI } = await import('@google/generative-ai').catch(() => ({ GoogleGenerativeAI: null }));
+  if (!GoogleGenerativeAI) throw new Error('@google/generative-ai not installed');
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  // gemini-1.5-flash supports large output — good for full HTML files
+  const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+  let lastErr;
+  for (const modelName of models) {
+    try {
+      const model  = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      return cleanHtml(result.response.text());
+    } catch (err) {
+      logger.warn(`[Portfolio] Gemini model ${modelName} failed: ${err.message}`);
+      lastErr = err;
+    }
   }
-  return html;
+  throw lastErr || new Error('All Gemini models failed');
+}
+
+async function callGroq(prompt) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY not configured');
+
+  const { default: Groq } = await import('groq-sdk').catch(() => ({ default: null }));
+  if (!Groq) throw new Error('groq-sdk not installed');
+
+  const groq = new Groq({ apiKey });
+  // Use models with higher context windows; reduce max_tokens to avoid exceeding limits
+  // llama-3.3-70b-versatile has a 128k context window
+  const models = [
+    { name: 'llama-3.3-70b-versatile', maxTokens: 4000 },
+    { name: 'llama-3.1-8b-instant',    maxTokens: 3000 },
+  ];
+  let lastErr;
+  for (const { name: model, maxTokens } of models) {
+    try {
+      const completion = await groq.chat.completions.create({
+        messages: [
+          { role: 'system', content: 'You are an expert web developer. Output only raw HTML, nothing else. No markdown fences.' },
+          { role: 'user',   content: prompt },
+        ],
+        model,
+        temperature: 0.4,
+        max_tokens:  maxTokens,
+      });
+      const text = completion.choices[0]?.message?.content || '';
+      return cleanHtml(text);
+    } catch (err) {
+      logger.warn(`[Portfolio] Groq model ${model} failed: ${err.message}`);
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('All Groq models failed');
+}
+
+// ── JSON provider wrappers (CV parsing) ──────────────────────────────────────
+
+async function callAnthropicJson(prompt) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+  const Anthropic = require('@anthropic-ai/sdk');
+  const client = new Anthropic({ apiKey });
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 2000,
+    system: 'You are a data extraction assistant. Output raw JSON only — no markdown, no backticks, no explanation.',
+    messages: [{ role: 'user', content: prompt }],
+  });
+  return parseJsonSafe(response.content[0]?.text?.trim() || '');
+}
+
+async function callGeminiJson(prompt) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+  const { GoogleGenerativeAI } = await import('@google/generative-ai').catch(() => ({ GoogleGenerativeAI: null }));
+  if (!GoogleGenerativeAI) throw new Error('@google/generative-ai not installed');
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const result = await model.generateContent(prompt);
+  return parseJsonSafe(result.response.text());
+}
+
+async function callGroqJson(prompt) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY not configured');
+  const { default: Groq } = await import('groq-sdk').catch(() => ({ default: null }));
+  if (!Groq) throw new Error('groq-sdk not installed');
+  const groq = new Groq({ apiKey });
+  const completion = await groq.chat.completions.create({
+    messages: [
+      { role: 'system', content: 'You are a data extraction assistant. Output raw JSON only — no markdown, no extra text.' },
+      { role: 'user',   content: prompt },
+    ],
+    model: 'llama-3.1-8b-instant',
+    temperature: 0.2,
+    max_tokens: 2000,
+  });
+  return parseJsonSafe(completion.choices[0]?.message?.content || '');
 }
 
 // ── Daily limit check ─────────────────────────────────────────────────────────
@@ -142,6 +207,7 @@ async function generatePortfolio(userId, info) {
   let html = null;
   const errors = [];
 
+  // Anthropic first — best at long HTML generation; Gemini second; Groq as last resort
   const providers = [
     { name: 'Anthropic', fn: callAnthropic },
     { name: 'Gemini',    fn: callGemini },
@@ -163,7 +229,7 @@ async function generatePortfolio(userId, info) {
 
   if (!html) {
     logger.error('[Portfolio] All providers failed:\n' + errors.join('\n'));
-    throw new Error('Could not generate portfolio — all AI providers failed.');
+    throw new Error('Could not generate portfolio — all AI providers failed. Details: ' + errors.join(' | '));
   }
 
   try {
@@ -220,63 +286,6 @@ async function deletePortfolio(userId, id) {
   );
   if (!rows.length) throw new Error('Portfolio not found');
   return { deleted: true };
-}
-
-
-
-// ── JSON provider helpers (used by parseCvText) ──────────────────────────────
-
-function parseJsonSafe(text) {
-  if (!text) throw new Error('Empty response');
-  let clean = text.trim()
-    .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
-  const start = clean.indexOf('{');
-  const end   = clean.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error('No JSON object in response');
-  return JSON.parse(clean.slice(start, end + 1));
-}
-
-async function callGroqJson(prompt) {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error('GROQ_API_KEY not configured');
-  const { default: Groq } = await import('groq-sdk').catch(() => ({ default: null }));
-  if (!Groq) throw new Error('groq-sdk not installed');
-  const groq = new Groq({ apiKey });
-  const completion = await groq.chat.completions.create({
-    messages: [
-      { role: 'system', content: 'You are a data extraction assistant. Output raw JSON only — no markdown, no extra text.' },
-      { role: 'user',   content: prompt },
-    ],
-    model: 'llama3-8b-8192',
-    temperature: 0.2,
-    max_tokens: 2000,
-  });
-  return parseJsonSafe(completion.choices[0]?.message?.content || '');
-}
-
-async function callGeminiJson(prompt) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
-  const { GoogleGenerativeAI } = await import('@google/generative-ai').catch(() => ({ GoogleGenerativeAI: null }));
-  if (!GoogleGenerativeAI) throw new Error('@google/generative-ai not installed');
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-  const result = await model.generateContent(prompt);
-  return parseJsonSafe(result.response.text());
-}
-
-async function callAnthropicJson(prompt) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
-  const Anthropic = require('@anthropic-ai/sdk');
-  const client = new Anthropic({ apiKey });
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5',
-    max_tokens: 2000,
-    system: 'You are a data extraction assistant. Output raw JSON only — no markdown, no backticks, no explanation.',
-    messages: [{ role: 'user', content: prompt }],
-  });
-  return parseJsonSafe(response.content[0]?.text?.trim() || '');
 }
 
 async function parseCvText(cvText) {

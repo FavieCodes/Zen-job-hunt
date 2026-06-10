@@ -33,7 +33,7 @@ function parseJsonSafe(text) {
   return JSON.parse(clean.slice(start, end + 1));
 }
 
-// ── Provider wrappers ─────────────────────────────────────────────────────────
+// ── JSON provider wrappers (for interview prep generation) ────────────────────
 
 async function callGroq(prompt) {
   const apiKey = process.env.GROQ_API_KEY;
@@ -43,7 +43,12 @@ async function callGroq(prompt) {
   if (!Groq) throw new Error('groq-sdk not installed');
 
   const groq = new Groq({ apiKey });
-  const models = ['llama3-8b-8192', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
+  // Updated model list — llama3-8b-8192 is deprecated, use current models
+  const models = [
+    'llama-3.1-8b-instant',
+    'llama-3.3-70b-versatile',
+    'llama3-70b-8192',
+  ];
   let lastErr;
   for (const model of models) {
     try {
@@ -74,7 +79,7 @@ async function callGemini(prompt) {
   if (!GoogleGenerativeAI) throw new Error('@google/generative-ai not installed');
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
+  const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
   let lastErr;
   for (const modelName of models) {
     try {
@@ -105,6 +110,88 @@ async function callAnthropic(prompt) {
   return parseJsonSafe(response.content[0]?.text?.trim() || '');
 }
 
+// ── Plain-text provider wrappers (for answer generation) ─────────────────────
+
+async function callGroqText(prompt) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY not configured');
+
+  const { default: Groq } = await import('groq-sdk').catch(() => ({ default: null }));
+  if (!Groq) throw new Error('groq-sdk not installed');
+
+  const groq = new Groq({ apiKey });
+  // Updated model list — llama3-8b-8192 deprecated
+  const models = [
+    'llama-3.1-8b-instant',
+    'llama-3.3-70b-versatile',
+    'llama3-70b-8192',
+  ];
+  let lastErr;
+  for (const model of models) {
+    try {
+      const completion = await groq.chat.completions.create({
+        messages: [
+          { role: 'system', content: 'You are an expert interview coach. Respond with plain text only — no markdown, no bullet points, no headers.' },
+          { role: 'user',   content: prompt },
+        ],
+        model,
+        temperature: 0.7,
+        max_tokens: 600,
+      });
+      const text = completion.choices[0]?.message?.content?.trim();
+      if (!text) throw new Error('Empty response from Groq');
+      return text;
+    } catch (err) {
+      logger.warn(`[Interview] callGroqText model ${model} failed: ${err.message}`);
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('All Groq models failed for text generation');
+}
+
+async function callGeminiText(prompt) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+
+  const { GoogleGenerativeAI } = await import('@google/generative-ai').catch(() => ({ GoogleGenerativeAI: null }));
+  if (!GoogleGenerativeAI) throw new Error('@google/generative-ai not installed');
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+  let lastErr;
+  for (const modelName of models) {
+    try {
+      const model  = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      const text   = result.response.text()?.trim();
+      if (!text) throw new Error('Empty response from Gemini');
+      return text;
+    } catch (err) {
+      logger.warn(`[Interview] callGeminiText model ${modelName} failed: ${err.message}`);
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('All Gemini models failed for text generation');
+}
+
+async function callAnthropicText(prompt) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+
+  const Anthropic = require('@anthropic-ai/sdk');
+  const client = new Anthropic({ apiKey });
+
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 600,
+    system: 'You are an expert interview coach. Respond with plain text only — no markdown, no bullet points, no headers.',
+    messages: [{ role: 'user', content: prompt }],
+  });
+  const text = response.content[0]?.text?.trim();
+  if (!text) throw new Error('Empty response from Anthropic');
+  return text;
+}
+
 // ── Daily limit check ─────────────────────────────────────────────────────────
 
 async function checkDailyLimit(userId) {
@@ -117,7 +204,7 @@ async function checkDailyLimit(userId) {
     return parseInt(rows[0].cnt, 10) < 1;
   } catch (err) {
     logger.warn('[Interview] Daily limit check failed, allowing request: ' + err.message);
-    return true; // fail open so a DB hiccup doesn't block everyone
+    return true;
   }
 }
 
@@ -195,7 +282,6 @@ async function getUserHistory(userId) {
   }
 }
 
-// Get a single prep record by ID, scoped to the requesting user  ← FIX #1
 async function getPrepById(userId, id) {
   try {
     const { rows } = await pool.query(
@@ -210,53 +296,6 @@ async function getPrepById(userId, id) {
   }
 }
 
-// ── Plain-text provider helpers (used by generateSingleAnswer) ───────────────
-
-async function callGroqText(prompt) {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error('GROQ_API_KEY not configured');
-  const { default: Groq } = await import('groq-sdk').catch(() => ({ default: null }));
-  if (!Groq) throw new Error('groq-sdk not installed');
-  const groq = new Groq({ apiKey });
-  const completion = await groq.chat.completions.create({
-    messages: [{ role: 'user', content: prompt }],
-    model: 'llama3-8b-8192',
-    temperature: 0.7,
-    max_tokens: 600,
-  });
-  const text = completion.choices[0]?.message?.content?.trim();
-  if (!text) throw new Error('Empty response from Groq');
-  return text;
-}
-
-async function callGeminiText(prompt) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
-  const { GoogleGenerativeAI } = await import('@google/generative-ai').catch(() => ({ GoogleGenerativeAI: null }));
-  if (!GoogleGenerativeAI) throw new Error('@google/generative-ai not installed');
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-  const result = await model.generateContent(prompt);
-  const text = result.response.text()?.trim();
-  if (!text) throw new Error('Empty response from Gemini');
-  return text;
-}
-
-async function callAnthropicText(prompt) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
-  const Anthropic = require('@anthropic-ai/sdk');
-  const client = new Anthropic({ apiKey });
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5',
-    max_tokens: 600,
-    messages: [{ role: 'user', content: prompt }],
-  });
-  const text = response.content[0]?.text?.trim();
-  if (!text) throw new Error('Empty response from Anthropic');
-  return text;
-}
-
 async function generateSingleAnswer({ question, tip, job_role, interview_type }) {
   const prompt = `You are an expert interview coach. A candidate is interviewing for a "${job_role || 'professional'}" role (${interview_type || 'General'} interview).
 
@@ -269,7 +308,7 @@ Write a strong, concise sample answer (150-250 words) that:
 3. Sounds natural and confident, not robotic
 4. Incorporates the coaching tip
 
-Respond with ONLY the answer text — no preamble, no labels, no markdown.`;
+Respond with ONLY the answer text — no preamble, no labels, no markdown, no bullet points.`;
 
   const providers = [
     { name: 'Groq',      fn: callGroqText },
@@ -277,15 +316,19 @@ Respond with ONLY the answer text — no preamble, no labels, no markdown.`;
     { name: 'Anthropic', fn: callAnthropicText },
   ];
 
+  const errors = [];
   for (const { name, fn } of providers) {
     try {
       const answer = await fn(prompt);
       logger.info('[Interview] generateSingleAnswer succeeded via ' + name);
       return answer;
     } catch (err) {
-      logger.warn('[Interview] generateSingleAnswer ' + name + ' failed: ' + err.message);
+      const msg = err.message || String(err);
+      logger.warn('[Interview] generateSingleAnswer ' + name + ' failed: ' + msg);
+      errors.push(`${name}: ${msg}`);
     }
   }
+  logger.error('[Interview] generateSingleAnswer — all providers failed:\n' + errors.join('\n'));
   throw new Error('All providers failed for answer generation');
 }
 
