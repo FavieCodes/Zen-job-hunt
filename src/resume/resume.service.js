@@ -73,6 +73,7 @@ YOUR TASK:
 
 Respond ONLY with valid JSON (no markdown fences):
 {
+  "fullName": "<extracted full name of candidate, or empty string>",
   "contacts": {
     "email": "<extracted email or empty>",
     "phone": "<extracted phone or empty>",
@@ -89,6 +90,13 @@ Respond ONLY with valid JSON (no markdown fences):
     }
   ],
   "suggestedSkills": ["skill1", "skill2", "skill3"],
+  "education": [
+    {
+      "degree": "<degree or certificate name>",
+      "institution": "<institution name>",
+      "date": "<dates attended or graduation date>"
+    }
+  ],
   "sampleProject": {
     "title": "<creative project name relevant to the role>",
     "description": "<short description of the project and its impact>",
@@ -299,6 +307,18 @@ function buildTailoredHtml(originalText, aiData, targetRole, userName) {
     contacts.website  ? `<a href="${contacts.website}"  style="color:#1e3a8a;">Portfolio</a>` : '',
   ].filter(Boolean);
 
+  const eduList = Array.isArray(aiData.education) ? aiData.education : [];
+  const eduHtml = eduList.map((edu) => `
+    <div style="margin-bottom:0.75rem;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+        <div>
+          <strong>${edu.degree || ''}</strong>
+          ${edu.institution ? `<span style="color:#555;"> — ${edu.institution}</span>` : ''}
+        </div>
+        <span style="font-size:0.82rem;color:#777;">${edu.date || ''}</span>
+      </div>
+    </div>`).join('');
+
   let projectHtml = '';
   if (project && project.title) {
     const projBullets = (project.bullets || []).map((b) => `<li style="margin-bottom:0.2rem;line-height:1.5;">${b}</li>`).join('');
@@ -316,7 +336,7 @@ function buildTailoredHtml(originalText, aiData, targetRole, userName) {
   return `
 <div style="max-width:800px;margin:0 auto;padding:2rem;font-family:'Segoe UI',Arial,sans-serif;color:#1a1a1a;line-height:1.6;">
   <div style="text-align:center;margin-bottom:1.5rem;border-bottom:2px solid #1e3a8a;padding-bottom:1rem;">
-    <h1 style="margin:0;font-size:1.8rem;color:#1e3a8a;">${userName || 'Resume'}</h1>
+    <h1 style="margin:0;font-size:1.8rem;color:#1e3a8a;">${aiData.fullName || userName || 'Resume'}</h1>
     <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:0.75rem;margin-top:0.5rem;font-size:0.85rem;">
       ${contactParts.join(' <span style="color:#ccc;">|</span> ')}
     </div>
@@ -338,6 +358,12 @@ function buildTailoredHtml(originalText, aiData, targetRole, userName) {
   <div style="margin-bottom:1.5rem;">
     <h2 style="font-size:1rem;text-transform:uppercase;letter-spacing:1px;color:#1e3a8a;border-bottom:1px solid #e5e7eb;padding-bottom:0.25rem;margin-bottom:0.75rem;">Work Experience (Tailored)</h2>
     ${expHtml}
+  </div>` : ''}
+
+  ${eduHtml ? `
+  <div style="margin-bottom:1.5rem;">
+    <h2 style="font-size:1rem;text-transform:uppercase;letter-spacing:1px;color:#1e3a8a;border-bottom:1px solid #e5e7eb;padding-bottom:0.25rem;margin-bottom:0.75rem;">Education</h2>
+    ${eduHtml}
   </div>` : ''}
 
   ${projectHtml}
