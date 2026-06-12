@@ -186,17 +186,38 @@ async function callGroqJson(prompt) {
 
 // ── Daily limit check ─────────────────────────────────────────────────────────
 
-async function checkDailyLimit(userId) {
+async function checkLimits(userId) {
   try {
+    try {
+      const userCheck = await pool.query('SELECT payment_status FROM users WHERE id = $1', [userId]);
+      if (userCheck.rows.length > 0 && userCheck.rows[0].payment_status === 'paid') {
+        return { allowed: true };
+      }
+    } catch (e) {
+      // Column might not exist yet, ignore
+    }
+
+    const { rows: totalRows } = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM portfolios WHERE user_id = $1`,
+      [userId]
+    );
+    if (parseInt(totalRows[0].cnt, 10) >= 5) {
+      return { allowed: false, reason: 'total_limit_reached' };
+    }
+
     const { rows } = await pool.query(
       `SELECT COUNT(*) AS cnt FROM portfolios
        WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '24 hours'`,
       [userId]
     );
-    return parseInt(rows[0].cnt, 10) < 1;
+    if (parseInt(rows[0].cnt, 10) >= 1) {
+      return { allowed: false, reason: 'daily_limit_reached' };
+    }
+
+    return { allowed: true };
   } catch (err) {
-    logger.warn('[Portfolio] Daily limit check failed, allowing request: ' + err.message);
-    return true;
+    logger.warn('[Portfolio] Limit check failed, allowing request: ' + err.message);
+    return { allowed: true };
   }
 }
 
@@ -334,5 +355,5 @@ ${cvText.slice(0, 5000)}`;
 
 module.exports = {
   generatePortfolio, getPortfolioHistory, getPortfolioById,
-  deletePortfolio, checkDailyLimit, parseCvText,
+  deletePortfolio, checkLimits, parseCvText,
 };

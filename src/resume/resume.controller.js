@@ -4,17 +4,38 @@ const logger = require('../common/logger');
 
 // ── Daily limit helper ────────────────────────────────────────────────────────
 
-async function checkResumeDailyLimit(userId) {
+async function checkLimits(userId) {
   try {
+    try {
+      const userCheck = await pool.query('SELECT payment_status FROM users WHERE id = $1', [userId]);
+      if (userCheck.rows.length > 0 && userCheck.rows[0].payment_status === 'paid') {
+        return { allowed: true };
+      }
+    } catch (e) {
+      // Ignore missing column
+    }
+
+    const { rows: totalRows } = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM resumes WHERE user_id = $1`,
+      [userId]
+    );
+    if (parseInt(totalRows[0].cnt, 10) >= 5) {
+      return { allowed: false, reason: 'total_limit_reached' };
+    }
+
     const { rows } = await pool.query(
       `SELECT COUNT(*) AS cnt FROM resumes
        WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '24 hours'`,
       [userId]
     );
-    return parseInt(rows[0].cnt, 10) < 1;
+    if (parseInt(rows[0].cnt, 10) >= 1) {
+      return { allowed: false, reason: 'daily_limit_reached' };
+    }
+
+    return { allowed: true };
   } catch (err) {
-    logger.warn('[Resume] Daily limit check failed, allowing request: ' + err.message);
-    return true;
+    logger.warn('[Resume] Limit check failed, allowing request: ' + err.message);
+    return { allowed: true };
   }
 }
 
@@ -27,8 +48,14 @@ async function generateResume(req, res, next) {
       return res.status(400).json({ error: 'fullName and email are required' });
     }
 
-    const withinLimit = await checkResumeDailyLimit(req.user.userId);
-    if (!withinLimit) {
+    const limitCheck = await checkLimits(req.user.userId);
+    if (!limitCheck.allowed) {
+      if (limitCheck.reason === 'total_limit_reached') {
+        return res.status(403).json({
+          error: 'total_limit_reached',
+          message: 'You have reached the maximum total resume generations (5). Upgrade to generate more.',
+        });
+      }
       return res.status(429).json({
         error: 'daily_limit_reached',
         message: 'You have used your free daily resume generation. Upgrade to generate more.',
@@ -49,8 +76,14 @@ async function tailorResume(req, res, next) {
       return res.status(400).json({ error: 'resumeText and targetRole are required' });
     }
 
-    const withinLimit = await checkResumeDailyLimit(req.user.userId);
-    if (!withinLimit) {
+    const limitCheck = await checkLimits(req.user.userId);
+    if (!limitCheck.allowed) {
+      if (limitCheck.reason === 'total_limit_reached') {
+        return res.status(403).json({
+          error: 'total_limit_reached',
+          message: 'You have reached the maximum total resume generations (5). Upgrade to generate more.',
+        });
+      }
       return res.status(429).json({
         error: 'daily_limit_reached',
         message: 'You have used your free daily resume generation. Upgrade to generate more.',

@@ -10,9 +10,15 @@ async function generatePrep(req, res, next) {
     }
     const userId = req.user.userId;
 
-    // Daily limit: max 1 per day
-    const withinLimit = await interviewService.checkDailyLimit(userId);
-    if (!withinLimit) {
+    // Limits: max 1 per day, max 5 total
+    const limitCheck = await interviewService.checkLimits(userId);
+    if (!limitCheck.allowed) {
+      if (limitCheck.reason === 'total_limit_reached') {
+        return res.status(403).json({
+          error: 'total_limit_reached',
+          message: 'You have reached the maximum total interview prep generations (5). Upgrade to generate more.',
+        });
+      }
       return res.status(429).json({
         error: 'daily_limit_reached',
         message: 'You have used your free daily interview prep. Upgrade to generate more.',

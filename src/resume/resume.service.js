@@ -64,13 +64,22 @@ ${resumeText.slice(0, 6000)}
 ---
 
 YOUR TASK:
-1. Rewrite the professional summary so it is laser-focused on "${targetRole}".
-2. For each work experience entry, rewrite / enhance the bullet points to emphasise skills and achievements most relevant to "${targetRole}". Use strong action verbs and quantify where possible.
-3. Suggest any additional skills the candidate should highlight for this role (based on what is already implied in their resume).
-4. Keep all factual details (dates, company names, job titles, education) exactly as given — do NOT invent or change facts.
+1. Extract the candidate's contact information (email, phone, linkedin, github, portfolio/website) from the text, if available.
+2. Rewrite the professional summary so it is laser-focused on "${targetRole}".
+3. For each work experience entry, rewrite / enhance the bullet points to emphasise skills and achievements most relevant to "${targetRole}". Use strong action verbs and quantify where possible.
+4. Suggest any additional skills the candidate should highlight for this role.
+5. Keep all factual details (dates, company names, job titles, education) exactly as given.
+6. Provide a sample relevant project tailored for this role, even if the candidate didn't include one in their uploaded resume. This project should demonstrate skills applicable to the "${targetRole}".
 
 Respond ONLY with valid JSON (no markdown fences):
 {
+  "contacts": {
+    "email": "<extracted email or empty>",
+    "phone": "<extracted phone or empty>",
+    "linkedin": "<extracted linkedin URL or empty>",
+    "github": "<extracted github URL or empty>",
+    "website": "<extracted portfolio/website URL or empty>"
+  },
   "tailoredSummary": "<rewritten professional summary>",
   "tailoredExperience": [
     {
@@ -80,7 +89,11 @@ Respond ONLY with valid JSON (no markdown fences):
     }
   ],
   "suggestedSkills": ["skill1", "skill2", "skill3"],
-  "tailoringNotes": "<2-3 sentences of coaching advice for this specific application>"
+  "sampleProject": {
+    "title": "<creative project name relevant to the role>",
+    "description": "<short description of the project and its impact>",
+    "bullets": ["bullet 1", "bullet 2"]
+  }
 }`;
 }
 
@@ -180,7 +193,7 @@ async function runAI(prompt) {
     }
   }
   logger.error('[Resume] All AI providers failed:\n' + errors.join('\n'));
-  return null; // caller handles null gracefully
+  return null; 
 }
 
 // ── HTML builder ──────────────────────────────────────────────────────────────
@@ -262,7 +275,8 @@ function buildTailoredHtml(originalText, aiData, targetRole, userName) {
   const summary  = aiData.tailoredSummary || '';
   const expList  = Array.isArray(aiData.tailoredExperience) ? aiData.tailoredExperience : [];
   const skills   = Array.isArray(aiData.suggestedSkills)    ? aiData.suggestedSkills    : [];
-  const notes    = aiData.tailoringNotes || '';
+  const contacts = aiData.contacts || {};
+  const project  = aiData.sampleProject || null;
 
   const expHtml = expList.map((exp) => {
     const bullets = (exp.improvedBullets || []).map((b) => `<li style="margin-bottom:0.2rem;line-height:1.5;">${b}</li>`).join('');
@@ -277,11 +291,35 @@ function buildTailoredHtml(originalText, aiData, targetRole, userName) {
     `<span style="background:#dbeafe;color:#1e40af;padding:0.2rem 0.6rem;border-radius:0.75rem;font-size:0.82rem;font-weight:500;">${s}</span>`
   ).join(' ');
 
+  const contactParts = [
+    contacts.email    ? `<a href="mailto:${contacts.email}" style="color:#1e3a8a;">${contacts.email}</a>` : '',
+    contacts.phone    ? `<span>${contacts.phone}</span>` : '',
+    contacts.linkedin ? `<a href="${contacts.linkedin}" style="color:#1e3a8a;">LinkedIn</a>` : '',
+    contacts.github   ? `<a href="${contacts.github}" style="color:#1e3a8a;">GitHub</a>` : '',
+    contacts.website  ? `<a href="${contacts.website}"  style="color:#1e3a8a;">Portfolio</a>` : '',
+  ].filter(Boolean);
+
+  let projectHtml = '';
+  if (project && project.title) {
+    const projBullets = (project.bullets || []).map((b) => `<li style="margin-bottom:0.2rem;line-height:1.5;">${b}</li>`).join('');
+    projectHtml = `
+    <div style="margin-bottom:1.5rem;">
+      <h2 style="font-size:1rem;text-transform:uppercase;letter-spacing:1px;color:#1e3a8a;border-bottom:1px solid #e5e7eb;padding-bottom:0.25rem;margin-bottom:0.75rem;">Sample Project (Role-Relevant)</h2>
+      <div style="margin-bottom:1rem;">
+        <div><strong>${project.title}</strong></div>
+        ${project.description ? `<p style="margin:0.2rem 0;color:#374151;">${project.description}</p>` : ''}
+        ${projBullets ? `<ul style="margin:0.4rem 0 0 1.2rem;padding:0;">${projBullets}</ul>` : ''}
+      </div>
+    </div>`;
+  }
+
   return `
 <div style="max-width:800px;margin:0 auto;padding:2rem;font-family:'Segoe UI',Arial,sans-serif;color:#1a1a1a;line-height:1.6;">
   <div style="text-align:center;margin-bottom:1.5rem;border-bottom:2px solid #1e3a8a;padding-bottom:1rem;">
     <h1 style="margin:0;font-size:1.8rem;color:#1e3a8a;">${userName || 'Resume'}</h1>
-    <p style="margin:0.25rem 0;font-size:1rem;color:#555;font-style:italic;">Tailored for: ${targetRole}</p>
+    <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:0.75rem;margin-top:0.5rem;font-size:0.85rem;">
+      ${contactParts.join(' <span style="color:#ccc;">|</span> ')}
+    </div>
   </div>
 
   ${summary ? `
@@ -302,11 +340,7 @@ function buildTailoredHtml(originalText, aiData, targetRole, userName) {
     ${expHtml}
   </div>` : ''}
 
-  ${notes ? `
-  <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:0.75rem;padding:1rem 1.25rem;margin-top:1.5rem;">
-    <h3 style="margin:0 0 0.5rem;font-size:0.9rem;color:#166534;text-transform:uppercase;letter-spacing:.05em;"><i>💡 Coaching Notes</i></h3>
-    <p style="margin:0;font-size:0.875rem;color:#166534;">${notes}</p>
-  </div>` : ''}
+  ${projectHtml}
 </div>`;
 }
 
@@ -327,7 +361,6 @@ async function ensureResumeTable() {
   await db.query(`
     CREATE INDEX IF NOT EXISTS idx_resume_history_user ON resume_history(user_id);
   `);
-  // Add resume_type column if table already existed without it
   await db.query(`
     ALTER TABLE resume_history ADD COLUMN IF NOT EXISTS resume_type TEXT DEFAULT 'generated';
   `).catch(() => {});
@@ -363,10 +396,7 @@ async function generateResume(userId, form) {
   }
 }
 
-/**
- * Tailor an uploaded resume (provided as plain text) to a target role using AI.
- * The result is saved to resume_history so the user can retrieve it later.
- */
+// Tailor an uploaded resume 
 async function tailorUploadedResume(userId, resumeText, targetRole, userName) {
   await ensureResumeTable();
 
@@ -391,10 +421,10 @@ async function tailorUploadedResume(userId, resumeText, targetRole, userName) {
        VALUES ($1, $2, 'tailored', $3, $4) RETURNING id, title, resume_type, created_at`,
       [userId, title, JSON.stringify({ targetRole, resumeTextLength: resumeText.length }), generatedHtml]
     );
-    return { ...rows[0], generated_html: generatedHtml, tailoring_notes: aiData.tailoringNotes || '' };
+    return { ...rows[0], generated_html: generatedHtml };
   } catch (dbErr) {
     logger.error('[Resume] DB save error (tailor): ' + dbErr.message);
-    return { id: null, title, resume_type: 'tailored', generated_html: generatedHtml, created_at: new Date().toISOString(), tailoring_notes: aiData.tailoringNotes || '' };
+    return { id: null, title, resume_type: 'tailored', generated_html: generatedHtml, created_at: new Date().toISOString() };
   }
 }
 

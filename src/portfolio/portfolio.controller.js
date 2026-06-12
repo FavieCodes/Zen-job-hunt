@@ -8,8 +8,14 @@ async function generatePortfolio(req, res, next) {
       return res.status(400).json({ error: 'fullName is required' });
     }
 
-    const withinLimit = await portfolioService.checkDailyLimit(req.user.userId);
-    if (!withinLimit) {
+    const limitCheck = await portfolioService.checkLimits(req.user.userId);
+    if (!limitCheck.allowed) {
+      if (limitCheck.reason === 'total_limit_reached') {
+        return res.status(403).json({
+          error: 'total_limit_reached',
+          message: 'You have reached the maximum total portfolio generations (5). Upgrade to generate more.',
+        });
+      }
       return res.status(429).json({
         error: 'daily_limit_reached',
         message: 'You have used your free daily portfolio generation. Upgrade to generate more.',
