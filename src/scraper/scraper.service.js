@@ -85,6 +85,9 @@ const RSS_TARGETS = [
   { url: 'https://scholarshipscorner.website/feed/',                  type: 'scholarships', name: 'Scholarships Corner RSS' },
   { url: 'https://www.scholarshipsads.com/feed/',                     type: 'scholarships', name: 'ScholarshipsAds RSS' },
   { url: 'https://www.scholars4dev.com/category/scholarships-for-africans/feed/', type: 'scholarships', name: 'Scholars4Dev Africa RSS' },
+  { url: 'https://scholarship-positions.com/feed/',                   type: 'scholarships', name: 'Scholarship Positions RSS' },
+  { url: 'https://www.opportunitiesforafricans.com/feed/',            type: 'scholarships', name: 'Opportunities For Africans RSS' },
+  { url: 'https://www.youthop.com/feed',                              type: 'scholarships', name: 'Youth Opportunities RSS' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -94,7 +97,7 @@ const RSS_TARGETS = [
 // ── Remotive public API (no key) ──────────────────────────────────────────────
 async function fetchRemotiveAPI() {
   try {
-    const res = await axios.get('https://remotive.com/api/remote-jobs?limit=100', { timeout: 15000 });
+    const res = await axios.get('https://remotive.com/api/remote-jobs?limit=500', { timeout: 15000 });
     const jobs = res.data.jobs || [];
     logger.info(`Remotive API: ${jobs.length} jobs`);
     return jobs.map((j) => ({
@@ -120,13 +123,21 @@ async function fetchRemotiveAPI() {
 // ── Jobicy public API (no key) ────────────────────────────────────────────────
 async function fetchJobicyAPI() {
   try {
-    const res = await axios.get('https://jobicy.com/api/v2/remote-jobs?count=50&geo=nigeria', { timeout: 15000 });
-    const jobs = res.data.jobs || [];
-    // Also fetch global
-    const res2 = await axios.get('https://jobicy.com/api/v2/remote-jobs?count=50', { timeout: 15000 });
-    const allJobs = [...jobs, ...(res2.data.jobs || [])];
-    logger.info(`Jobicy API: ${allJobs.length} jobs`);
-    return allJobs.map((j) => ({
+    const regions = ['nigeria', 'latam', 'emea', 'apac', 'uk', 'canada', 'usa'];
+    const allJobs = [];
+    for (const reg of regions) {
+      const res = await axios.get(`https://jobicy.com/api/v2/remote-jobs?count=50&geo=${reg}`, { timeout: 15000 });
+      allJobs.push(...(res.data.jobs || []));
+      await delay(500); // Respect API limits
+    }
+    const resGlobal = await axios.get('https://jobicy.com/api/v2/remote-jobs?count=50', { timeout: 15000 });
+    allJobs.push(...(resGlobal.data.jobs || []));
+
+    // Dedup jobs
+    const uniqueJobs = Array.from(new Map(allJobs.map(j => [j.url, j])).values());
+
+    logger.info(`Jobicy API: ${uniqueJobs.length} jobs`);
+    return uniqueJobs.map((j) => ({
       title:       j.jobTitle,
       company:     j.companyName,
       description: j.jobExcerpt?.slice(0, 500) || null,
@@ -149,7 +160,7 @@ async function fetchJobicyAPI() {
 // ── The Muse API (no key needed for basic usage) ──────────────────────────────
 async function fetchTheMuseAPI() {
   try {
-    const pages = [1, 2, 3];
+    const pages = Array.from({ length: 10 }, (_, i) => i + 1); // pages 1 to 10
     const allJobs = [];
     for (const page of pages) {
       const res = await axios.get(`https://www.themuse.com/api/public/jobs?page=${page}&descending=true`, { timeout: 15000 });
@@ -187,11 +198,18 @@ async function fetchAdzunaAPI() {
     return [];
   }
   const searches = [
+    // Nigeria
     { country: 'ng', what: 'developer', where: 'nigeria' },
     { country: 'ng', what: 'engineer',  where: 'nigeria' },
     { country: 'ng', what: 'designer',  where: 'nigeria' },
-    { country: 'gb', what: 'developer remote' },
-    { country: 'us', what: 'developer remote' },
+    { country: 'ng', what: 'manager',   where: 'nigeria' },
+    // Global & Tech hubs
+    { country: 'gb', what: 'developer' }, { country: 'gb', what: 'engineer' }, { country: 'gb', what: 'designer' },
+    { country: 'us', what: 'developer' }, { country: 'us', what: 'engineer' }, { country: 'us', what: 'data' },
+    { country: 'ca', what: 'developer' }, { country: 'ca', what: 'engineer' },
+    { country: 'au', what: 'developer' }, { country: 'in', what: 'developer' },
+    { country: 'sg', what: 'developer' }, { country: 'de', what: 'developer' },
+    { country: 'fr', what: 'developer' }, { country: 'za', what: 'developer' },
   ];
   const allJobs = [];
   for (const s of searches) {
@@ -233,7 +251,7 @@ async function fetchAdzunaAPI() {
 async function fetchDevITJobsAPI() {
   try {
     const res = await axios.get('https://www.devitjobs.uk/api/jobsLight', { timeout: 15000 });
-    const jobs = Array.isArray(res.data) ? res.data.slice(0, 100) : [];
+    const jobs = Array.isArray(res.data) ? res.data : [];
     logger.info(`DevITJobs API: ${jobs.length} jobs`);
     return jobs.map((j) => ({
       title:       j.title,
@@ -259,9 +277,11 @@ async function fetchDevITJobsAPI() {
 async function fetchArbeitnowAPI() {
   try {
     const allJobs = [];
-    for (let page = 1; page <= 3; page++) {
+    for (let page = 1; page <= 10; page++) {
       const res = await axios.get(`https://arbeitnow.com/api/job-board-api?page=${page}`, { timeout: 15000 });
-      allJobs.push(...(res.data.data || []));
+      const jobs = res.data.data || [];
+      if (jobs.length === 0) break;
+      allJobs.push(...jobs);
       await delay(300);
     }
     logger.info(`Arbeitnow API: ${allJobs.length} jobs`);
