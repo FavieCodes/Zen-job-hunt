@@ -317,6 +317,20 @@ const USER_AGENTS = [
 ];
 const randomAgent = () => USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 
+function safeStr(val) {
+  if (!val) return '';
+  if (typeof val === 'object' && val._) return String(val._);
+  if (Array.isArray(val)) return String(val[0]);
+  return String(val);
+}
+
+function safeISO(val) {
+  const str = safeStr(val);
+  if (!str) return null;
+  const d = new Date(str);
+  return isNaN(d) ? null : d.toISOString();
+}
+
 async function fetchRSS(url) {
   const res = await axios.get(url, {
     headers: { 'User-Agent': randomAgent(), Accept: 'application/rss+xml, application/xml, text/xml, */*' },
@@ -329,11 +343,11 @@ async function fetchRSS(url) {
 }
 
 function rssItemToJob(item, sourceName) {
-  const title   = item.title?._ || item.title || '';
-  const link    = item.link?._ || item.link || item.guid?._ || item.guid || null;
+  const title   = safeStr(item.title);
+  const link    = safeStr(item.link || item.guid) || null;
   const pubDate = item.pubDate || item.published || item['dc:date'] || null;
-  const desc    = (item.description || item.summary || item.content || '')
-    .toString().replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500);
+  const desc    = safeStr(item.description || item.summary || item.content)
+    .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500);
 
   // Try to guess company from title "Role at Company"
   const atMatch = title.match(/\bat\s+(.+)$/i);
@@ -351,16 +365,16 @@ function rssItemToJob(item, sourceName) {
     apply_url:   link,
     source_url:  link,
     source_name: sourceName,
-    posted_at:   pubDate ? new Date(pubDate).toISOString() : null,
+    posted_at:   safeISO(pubDate),
   };
 }
 
 function rssItemToScholarship(item, sourceName) {
-  const title   = item.title?._ || item.title || '';
-  const link    = item.link?._ || item.link || item.guid?._ || item.guid || null;
+  const title   = safeStr(item.title);
+  const link    = safeStr(item.link || item.guid) || null;
   const pubDate = item.pubDate || item.published || null;
-  const desc    = (item.description || item.summary || '')
-    .toString().replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500);
+  const desc    = safeStr(item.description || item.summary)
+    .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500);
 
   // Try to detect deadline from description
   const deadlineMatch = desc.match(/deadline[:\s]+([A-Za-z]+ \d{1,2},?\s*\d{4}|\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i);
@@ -381,7 +395,7 @@ function rssItemToScholarship(item, sourceName) {
     apply_url:   link,
     source_url:  link,
     source_name: sourceName,
-    posted_at:   pubDate ? new Date(pubDate).toISOString() : null,
+    posted_at:   safeISO(pubDate),
   };
 }
 
@@ -389,11 +403,16 @@ async function runRSSTarget(target) {
   try {
     const items = await fetchRSS(target.url);
     logger.info(`RSS OK: ${target.name} — ${items.length} items`);
-    return items.map((item) =>
-      target.type === 'jobs'
-        ? rssItemToJob(item, target.name)
-        : rssItemToScholarship(item, target.name)
-    );
+    return items.map((item) => {
+      try {
+        return target.type === 'jobs'
+          ? rssItemToJob(item, target.name)
+          : rssItemToScholarship(item, target.name);
+      } catch (err) {
+        logger.warn(`Failed mapping item for ${target.name}: ${err.message}`);
+        return null;
+      }
+    }).filter(Boolean);
   } catch (err) {
     logger.warn(`RSS failed: ${target.name}`, { error: err.message });
     return [];
