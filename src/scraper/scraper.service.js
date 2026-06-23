@@ -2,6 +2,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const xml2js = require('xml2js');
 const db = require('../config/db');
+const redis = require('../config/redis');
 const logger = require('../common/logger');
 const { anthropicKey, groqKey, geminiKey, adzunaAppId, adzunaAppKey } = require('../config/env');
 
@@ -594,6 +595,18 @@ async function runScraper() {
   }
 
   logger.info('Scraper run complete', { jobs: results.jobs, scholarships: results.scholarships, errors: results.errors.length });
+
+  // Flush jobs cache so frontend updates immediately
+  try {
+    const keys = await redis.keys('jobs:*');
+    if (keys.length > 0) {
+      await redis.del(keys);
+      logger.info(`Cleared ${keys.length} cached job queries`);
+    }
+  } catch (err) {
+    logger.warn('Failed to clear redis cache', { error: err.message });
+  }
+
   return results;
 }
 
