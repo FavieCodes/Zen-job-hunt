@@ -1,5 +1,17 @@
 const db = require('../config/db');
+const redis = require('../config/redis');
 const logger = require('../common/logger');
+
+async function clearRedisCache() {
+  try {
+    const keys = await redis.keys('jobs:*');
+    if (keys.length > 0) await redis.del(keys);
+    const skeys = await redis.keys('scholarships:*');
+    if (skeys.length > 0) await redis.del(skeys);
+  } catch (err) {
+    logger.warn('[admin.service] Failed to clear redis cache', { error: err.message });
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // USERS
@@ -156,7 +168,9 @@ async function createJobs(payload) {
             job_type, salary, apply_url, source_url, source_name, posted_at, is_active)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
                  COALESCE($12, NOW()), COALESCE($13, TRUE))
-         ON CONFLICT (source_url) DO NOTHING
+         ON CONFLICT (source_url) DO UPDATE SET
+           is_active = COALESCE(EXCLUDED.is_active, TRUE),
+           scraped_at = NOW()
          RETURNING id`,
         [
           job.title,     job.company      || null, job.description || null,
@@ -172,6 +186,7 @@ async function createJobs(payload) {
       result.errors.push({ item: job, error: err.message });
     }
   }
+  await clearRedisCache();
   return result;
 }
 
@@ -254,12 +269,14 @@ async function updateJob(id, updates) {
     values
   );
   if (!res.rows[0]) { const e = new Error('Job not found'); e.status = 404; throw e; }
+  await clearRedisCache();
   return res.rows[0];
 }
 
 async function deleteJob(id) {
   const res = await db.query('DELETE FROM jobs WHERE id = $1 RETURNING id', [id]);
   if (!res.rows[0]) { const e = new Error('Job not found'); e.status = 404; throw e; }
+  await clearRedisCache();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

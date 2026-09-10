@@ -12,7 +12,6 @@ async function searchJobs({ country, state, city, q, job_type, page = 1, limit =
 
   const conditions = [
     'is_active = TRUE',
-    "(posted_at IS NULL OR posted_at >= NOW() - INTERVAL '30 days')",
   ];
   const params = [];
   let i = 1;

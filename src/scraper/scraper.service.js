@@ -794,7 +794,9 @@ async function saveJobs(jobs, sourceName) {
       const res = await db.query(
         `INSERT INTO jobs (title,company,description,country,state,city,job_type,salary,apply_url,source_url,source_name,posted_at)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-         ON CONFLICT (source_url) DO NOTHING
+         ON CONFLICT (source_url) DO UPDATE SET
+           is_active = TRUE,
+           scraped_at = NOW()
          RETURNING id`,
         [job.title, job.company||null, job.description||null, job.country||null, job.state||null,
          job.city||null, job.job_type||null, job.salary||null, job.apply_url||null,
@@ -818,7 +820,9 @@ async function saveScholarships(scholarships, sourceName) {
       const res = await db.query(
         `INSERT INTO scholarships (title,provider,description,country,field,deadline,amount,apply_url,source_url,posted_at)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-         ON CONFLICT (source_url) DO NOTHING
+         ON CONFLICT (source_url) DO UPDATE SET
+           is_active = TRUE,
+           scraped_at = NOW()
          RETURNING id`,
         [s.title, s.provider||null, s.description||null, s.country||null, s.field||null,
          s.deadline||null, s.amount||null, s.apply_url||null, sourceUrl, s.posted_at||null]
