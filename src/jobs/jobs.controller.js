@@ -12,7 +12,11 @@ async function search(req, res, next) {
 
 async function getOne(req, res, next) {
   try {
-    const job = await jobsService.getJobById(req.params.id);
+    const { id } = req.params;
+    if (!id || id === 'undefined' || id === 'null') {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+    const job = await jobsService.getJobById(id);
     if (!job) return res.status(404).json({ error: 'Job not found' });
     res.json(job);
   } catch (err) {

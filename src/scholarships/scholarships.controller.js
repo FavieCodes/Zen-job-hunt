@@ -12,7 +12,11 @@ async function search(req, res, next) {
 
 async function getOne(req, res, next) {
   try {
-    const scholarship = await scholarshipsService.getScholarshipById(req.params.id);
+    const { id } = req.params;
+    if (!id || id === 'undefined' || id === 'null') {
+      return res.status(404).json({ error: 'Scholarship not found' });
+    }
+    const scholarship = await scholarshipsService.getScholarshipById(id);
     if (!scholarship) return res.status(404).json({ error: 'Scholarship not found' });
     res.json(scholarship);
   } catch (err) {
