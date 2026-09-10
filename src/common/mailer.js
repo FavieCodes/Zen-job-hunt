@@ -10,12 +10,9 @@ const SMTP_FROM    = process.env.SMTP_FROM || 'noreply@jobhunt.com';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://job-hunt-frontend-gold.vercel.app';
 
 let transporter  = null;
-let emailEnabled = false;
+const emailEnabled = !!(SMTP_HOST && SMTP_USER && SMTP_PASS);
 
-if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
-  // Port 465 → implicit TLS (secure: true)
-  // Port 587 → STARTTLS (secure: false, but tls upgrade happens automatically)
-  // Port 25  → plain (legacy, avoid)
+if (emailEnabled) {
   const useSecure = SMTP_PORT === 465;
 
   transporter = nodemailer.createTransport({
@@ -24,12 +21,9 @@ if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
     secure: useSecure,
     auth:   { user: SMTP_USER, pass: SMTP_PASS },
     tls: {
-      // Allow self-signed certs in dev; in prod this is fine for major providers
       rejectUnauthorized: false,
-      // Force minimum TLS version to avoid handshake failures
       minVersion: 'TLSv1.2',
     },
-    // Generous timeouts for slow SMTP servers
     connectionTimeout: 10000,
     greetingTimeout:   10000,
     socketTimeout:     15000,
@@ -37,19 +31,17 @@ if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
 
   transporter.verify((error) => {
     if (error) {
-      logger.error(`[Email] SMTP connection error: ${error.message}`);
+      logger.error(`[Email] SMTP verification check failed: ${error.message}`);
       logger.error(`[Email] Check your SMTP_HOST, SMTP_PORT, SMTP_USER and SMTP_PASS in Vercel → Settings → Environment Variables`);
-      emailEnabled = false;
     } else {
       logger.info('[Email] SMTP server is ready to send emails');
-      emailEnabled = true;
     }
   });
 } else {
   const missing = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'].filter((k) => !process.env[k]);
   logger.warn(`[Email] SMTP not configured — missing env vars: ${missing.join(', ')}`);
   logger.warn('[Email] Add SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM to Vercel → Settings → Environment Variables');
-  logger.warn('[Email] Emails will be LOGGED but NOT delivered until those vars are set.');
+  logger.warn('[Email] Emails will be LOGGED to console but NOT delivered until those vars are set.');
 }
 
 // ── Fallback: logs email content so you can debug confirm links locally ────────
@@ -70,14 +62,14 @@ const fallbackTransporter = {
 // ── Shared send helper ────────────────────────────────────────────────────────
 
 async function sendMail(opts) {
-  const active = (emailEnabled && transporter) ? transporter : fallbackTransporter;
+  const active = transporter || fallbackTransporter;
   try {
     const info = await active.sendMail(opts);
     logger.info(`[Email] Sent "${opts.subject}" to ${opts.to} (id: ${info.messageId})`);
     return true;
   } catch (err) {
-    logger.error(`[Email] Failed to send "${opts.subject}" to ${opts.to}: ${err.message}`);
-    // Retry once with fallback so the confirm link at least appears in logs
+    logger.error(`[Email] Failed to send "${opts.subject}" to ${opts.to}: ${err.message}`, { stack: err.stack });
+    // Log fallback email content so the confirmation/reset link appears in Vercel logs
     try { await fallbackTransporter.sendMail(opts); } catch {}
     return false;
   }

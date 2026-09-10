@@ -128,7 +128,12 @@ async function callGroq(prompt) {
   const { default: Groq } = await import('groq-sdk').catch(() => ({ default: null }));
   if (!Groq) throw new Error('groq-sdk not installed');
   const groq   = new Groq({ apiKey });
-  const models = ['llama3-8b-8192', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
+  const models = [
+    'llama-3.3-70b-versatile',
+    'llama-3.1-8b-instant',
+    'deepseek-r1-distill-llama-70b',
+    'qwen-2.5-coder-32b',
+  ];
   let lastErr;
   for (const model of models) {
     try {

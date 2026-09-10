@@ -43,11 +43,12 @@ async function callGroq(prompt) {
   if (!Groq) throw new Error('groq-sdk not installed');
 
   const groq = new Groq({ apiKey });
-  // Updated model list — llama3-8b-8192 is deprecated, use current models
+  // Updated model list — using active production Groq models
   const models = [
-    'llama-3.1-8b-instant',
     'llama-3.3-70b-versatile',
-    'llama3-70b-8192',
+    'llama-3.1-8b-instant',
+    'deepseek-r1-distill-llama-70b',
+    'qwen-2.5-coder-32b',
   ];
   let lastErr;
   for (const model of models) {
@@ -120,11 +121,12 @@ async function callGroqText(prompt) {
   if (!Groq) throw new Error('groq-sdk not installed');
 
   const groq = new Groq({ apiKey });
-  // Updated model list — llama3-8b-8192 deprecated
+  // Updated model list — using active production Groq models
   const models = [
-    'llama-3.1-8b-instant',
     'llama-3.3-70b-versatile',
-    'llama3-70b-8192',
+    'llama-3.1-8b-instant',
+    'deepseek-r1-distill-llama-70b',
+    'qwen-2.5-coder-32b',
   ];
   let lastErr;
   for (const model of models) {

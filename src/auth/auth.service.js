@@ -5,6 +5,7 @@ const { OAuth2Client } = require('google-auth-library');
 const axios = require('axios');
 const db = require('../config/db');
 const mailer = require('../common/mailer');
+const logger = require('../common/logger');
 const { jwtSecret, refreshSecret, googleClientId } = require('../config/env');
 
 async function signup(email, username, password) {
@@ -33,7 +34,11 @@ async function signup(email, username, password) {
     'INSERT INTO confirmations (user_id, token, expires_at) VALUES ($1, $2, $3)',
     [user.id, token, expiresAt]
   );
-  mailer.sendConfirmationEmail(user.email, token).catch(() => {});
+  try {
+    await mailer.sendConfirmationEmail(user.email, token);
+  } catch (emailErr) {
+    logger.error(`[Auth] Error sending confirmation email to ${user.email}: ${emailErr.message}`, { stack: emailErr.stack });
+  }
 
   return { message: 'A confirmation email has been sent to your address.' };
 }
@@ -187,7 +192,11 @@ async function issuePasswordReset(email) {
     'INSERT INTO password_resets (user_id, token, expires_at) VALUES ($1, $2, $3)',
     [user.id, token, expiresAt]
   );
-  await mailer.sendResetEmail(user.email, token).catch(() => {});
+  try {
+    await mailer.sendResetEmail(user.email, token);
+  } catch (emailErr) {
+    logger.error(`[Auth] Error sending password reset email to ${user.email}: ${emailErr.message}`, { stack: emailErr.stack });
+  }
 }
 
 async function resetPasswordWithToken(token, newPassword) {
@@ -279,7 +288,11 @@ async function resendConfirmation(email) {
     'INSERT INTO confirmations (user_id, token, expires_at) VALUES ($1, $2, $3)',
     [user.id, token, expiresAt]
   );
-  mailer.sendConfirmationEmail(user.email, token).catch(() => {});
+  try {
+    await mailer.sendConfirmationEmail(user.email, token);
+  } catch (emailErr) {
+    logger.error(`[Auth] Error resending confirmation email to ${user.email}: ${emailErr.message}`, { stack: emailErr.stack });
+  }
   return { message: 'Confirmation email resent' };
 }
 

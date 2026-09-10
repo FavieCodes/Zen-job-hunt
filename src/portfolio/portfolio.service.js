@@ -114,8 +114,10 @@ async function callGroq(prompt) {
   // Use models with higher context windows; reduce max_tokens to avoid exceeding limits
   // llama-3.3-70b-versatile has a 128k context window
   const models = [
-    { name: 'llama-3.3-70b-versatile', maxTokens: 4000 },
-    { name: 'llama-3.1-8b-instant',    maxTokens: 3000 },
+    { name: 'llama-3.3-70b-versatile',     maxTokens: 4000 },
+    { name: 'llama-3.1-8b-instant',        maxTokens: 3000 },
+    { name: 'deepseek-r1-distill-llama-70b', maxTokens: 4000 },
+    { name: 'qwen-2.5-coder-32b',           maxTokens: 4000 },
   ];
   let lastErr;
   for (const { name: model, maxTokens } of models) {
@@ -172,16 +174,26 @@ async function callGroqJson(prompt) {
   const { default: Groq } = await import('groq-sdk').catch(() => ({ default: null }));
   if (!Groq) throw new Error('groq-sdk not installed');
   const groq = new Groq({ apiKey });
-  const completion = await groq.chat.completions.create({
-    messages: [
-      { role: 'system', content: 'You are a data extraction assistant. Output raw JSON only — no markdown, no extra text.' },
-      { role: 'user',   content: prompt },
-    ],
-    model: 'llama-3.1-8b-instant',
-    temperature: 0.2,
-    max_tokens: 2000,
-  });
-  return parseJsonSafe(completion.choices[0]?.message?.content || '');
+  const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'qwen-2.5-coder-32b'];
+  let lastErr;
+  for (const model of models) {
+    try {
+      const completion = await groq.chat.completions.create({
+        messages: [
+          { role: 'system', content: 'You are a data extraction assistant. Output raw JSON only — no markdown, no extra text.' },
+          { role: 'user',   content: prompt },
+        ],
+        model,
+        temperature: 0.2,
+        max_tokens: 2000,
+      });
+      return parseJsonSafe(completion.choices[0]?.message?.content || '');
+    } catch (err) {
+      logger.warn(`[Portfolio] Groq JSON model ${model} failed: ${err.message}`);
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('All Groq JSON models failed');
 }
 
 // ── Daily limit check ─────────────────────────────────────────────────────────

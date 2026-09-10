@@ -39,15 +39,24 @@ const randomAgent = () => USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.len
 // ═══════════════════════════════════════════════════════════════════════════════
 const AI_PROVIDERS = [
   {
-    name: 'Groq (llama-3.3-70b)',
+    name: 'Groq (llama-3.3-70b / llama-3.1-8b)',
     available: () => !!groqKey,
     extract: async (prompt) => {
-      const res = await axios.post(
-        'https://api.groq.com/openai/v1/chat/completions',
-        { model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], max_tokens: 4000, temperature: 0 },
-        { headers: { Authorization: `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, timeout: 45000 }
-      );
-      return res.data.choices[0].message.content.trim();
+      const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'qwen-2.5-coder-32b'];
+      let lastErr;
+      for (const model of models) {
+        try {
+          const res = await axios.post(
+            'https://api.groq.com/openai/v1/chat/completions',
+            { model, messages: [{ role: 'user', content: prompt }], max_tokens: 4000, temperature: 0 },
+            { headers: { Authorization: `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, timeout: 45000 }
+          );
+          return res.data.choices[0].message.content.trim();
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      throw lastErr;
     },
   },
   {
