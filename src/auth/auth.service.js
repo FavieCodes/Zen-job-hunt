@@ -60,7 +60,7 @@ async function login(email, password) {
     throw err;
   }
 
-  const accessToken = jwt.sign({ userId: user.id, type: 'access' }, jwtSecret, { expiresIn: '15m' });
+  const accessToken = jwt.sign({ userId: user.id, type: 'access' }, jwtSecret, { expiresIn: '24h' });
   const refreshToken = jwt.sign({ userId: user.id, type: 'refresh' }, refreshSecret, { expiresIn: '30d' });
 
   return {
@@ -165,7 +165,7 @@ async function loginWithGoogle(token) {
     user.is_google_user = true;
   }
 
-  const accessToken = jwt.sign({ userId: user.id, type: 'access' }, jwtSecret, { expiresIn: '15m' });
+  const accessToken = jwt.sign({ userId: user.id, type: 'access' }, jwtSecret, { expiresIn: '24h' });
   const refreshToken = jwt.sign({ userId: user.id, type: 'refresh' }, refreshSecret, { expiresIn: '30d' });
   return {
     accessToken,
@@ -261,7 +261,7 @@ async function confirmRegistration(token) {
   const user = userRow.rows[0];
   await db.query('DELETE FROM confirmations WHERE user_id = $1', [r.user_id]);
 
-  const accessToken = jwt.sign({ userId: user.id, type: 'access' }, jwtSecret, { expiresIn: '15m' });
+  const accessToken = jwt.sign({ userId: user.id, type: 'access' }, jwtSecret, { expiresIn: '24h' });
   const refreshToken = jwt.sign({ userId: user.id, type: 'refresh' }, refreshSecret, { expiresIn: '30d' });
 
   return { message: 'Account confirmed', accessToken, refreshToken, user: { ...user, is_confirmed: true } };
@@ -310,6 +310,36 @@ async function getMe(userId) {
   return { user };
 }
 
+async function refreshTokenSession(refreshTokenStr) {
+  if (!refreshTokenStr) {
+    const err = new Error('Refresh token is required');
+    err.status = 400;
+    throw err;
+  }
+  const isBlacklisted = await isTokenBlacklisted(refreshTokenStr);
+  if (isBlacklisted) {
+    const err = new Error('Refresh token revoked');
+    err.status = 401;
+    throw err;
+  }
+  let payload;
+  try {
+    payload = jwt.verify(refreshTokenStr, refreshSecret);
+  } catch (e) {
+    const err = new Error('Invalid or expired refresh token');
+    err.status = 401;
+    throw err;
+  }
+  if (payload.type !== 'refresh') {
+    const err = new Error('Invalid token type');
+    err.status = 400;
+    throw err;
+  }
+  const newAccessToken = jwt.sign({ userId: payload.userId, type: 'access' }, jwtSecret, { expiresIn: '24h' });
+  const newRefreshToken = jwt.sign({ userId: payload.userId, type: 'refresh' }, refreshSecret, { expiresIn: '30d' });
+  return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+}
+
 module.exports = {
   signup,
   login,
@@ -321,4 +351,5 @@ module.exports = {
   confirmRegistration,
   resendConfirmation,
   getMe,
+  refreshTokenSession,
 };

@@ -137,6 +137,17 @@ async function getMe(req, res, next) {
   }
 }
 
+async function refreshToken(req, res, next) {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) return res.status(400).json({ error: 'refreshToken is required' });
+    const data = await authService.refreshTokenSession(refreshToken);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   signup,
   login,
@@ -148,4 +159,5 @@ module.exports = {
   confirmRegistration,
   resendConfirmation,
   getMe,
+  refreshToken,
 };

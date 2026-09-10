@@ -207,4 +207,25 @@ router.post('/resend-confirmation', authController.resendConfirmation);
  */
 router.get('/me', requireAuth, authController.getMe);
 
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Refresh access token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [refreshToken]
+ *             properties:
+ *               refreshToken: { type: string }
+ *     responses:
+ *       200: { description: New tokens issued, content: { application/json: { schema: { $ref: '#/components/schemas/AuthResponse' } } } }
+ *       401: { description: Invalid or expired refresh token }
+ */
+router.post('/refresh', authController.refreshToken);
+
 module.exports = router;
